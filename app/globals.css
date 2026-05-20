@@ -2145,174 +2145,178 @@ header {
    MOBILE STYLES
    @media max-width: 768px
 ========================= */
- 
+
 @media (max-width: 768px) {
- 
+
   /* =========================
      GLOBAL / BASE
   ========================= */
- 
+
   * {
     transition: none; /* Reduces jank on mobile */
   }
- 
+
   /* =========================
      HEADER
   ========================= */
- 
+
   header {
     padding: 10px 5%;
   }
- 
+
   .header-main-box {
     flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 8px;
+    text-align: center;
   }
- 
+
   .header-left-box h1 {
     font-size: 15px;
   }
- 
+
   .header-left-box p {
     font-size: 11px;
   }
- 
+
   .header-left-box img {
     width: 36px;
     height: 36px;
   }
- 
+
   .header-right-box {
     gap: 6px;
     flex-wrap: wrap;
   }
- 
+
   .header-link {
     font-size: 13px;
     padding: 6px 8px;
   }
- 
+
   .darkmode-btn {
     width: 34px;
     height: 34px;
   }
- 
+
   .login-link {
     font-size: 13px;
     padding: 6px 8px;
   }
- 
+
   .auth-section {
     gap: 6px;
   }
- 
+
   .logout-btn {
     font-size: 13px;
     padding: 6px 8px;
   }
- 
+
   .admin-link {
     font-size: 13px;
     padding: 6px 8px;
   }
- 
- 
+
+
   /* =========================
      FOOTER
   ========================= */
- 
+
   .footer-top {
     padding: 20px 5%;
   }
- 
+
   .footer-contact p {
     width: 100%;
     font-size: 0.85rem;
   }
- 
+
   .footer hr {
     margin: 0 5%;
   }
- 
+
   .footer-bottom {
     padding: 16px 5%;
     font-size: 0.8rem;
     text-align: center;
   }
- 
- 
+
+
   /* =========================
      EVENT CARDS (HOME)
   ========================= */
- 
+
   .home-event-card {
     width: 85vw;
     min-height: unset;
     margin: 0 auto 6% auto;
   }
- 
+
   .home-event-card-link {
     justify-content: center;
   }
- 
+
   .event-image {
     height: 180px;
   }
- 
+
   .event-title {
     font-size: 1.15rem;
     padding: 10px 14px 0 14px;
   }
- 
- 
+
+
   /* =========================
      HOME PAGE
   ========================= */
- 
+
   .parallax-image-container {
     height: 320px;
   }
- 
+
   .parallax-image-text h2 {
     font-size: 2.2rem;
     text-align: center;
   }
- 
+
   .parallax-image-text p {
     font-size: 1.1rem;
     text-align: center;
   }
- 
+
   #random-ahh-container {
     flex-direction: column;
     padding: 5% 5%;
     gap: 14px;
   }
- 
+
   #random-ahh-container .rac-boxes {
     width: 100%;
     font-size: 1rem;
     padding: 16px;
   }
- 
+
   #random-ahh-container .rac-boxes img {
     height: 70px;
   }
- 
+
   .rac-boxes div {
     width: 100%;
     gap: 20px;
     margin-left: 0;
   }
- 
+
   .rac-boxes div h3 {
     font-size: 2rem;
   }
- 
+
   #home-events-section {
     padding: 0 5% 6%;
   }
- 
+
   #uec-heading {
     font-size: 1.4rem;
     padding: 30px 0 14px;
@@ -2320,414 +2324,414 @@ header {
     align-items: flex-start;
     gap: 10px;
   }
- 
+
   #uec-heading p {
     font-size: 0.9rem;
   }
- 
+
   #uec-heading a {
     font-size: 0.9rem;
     padding: 8px 14px;
   }
- 
+
   #uec-events {
     flex-direction: column;
     align-items: center;
     gap: 0;
   }
- 
+
   #about-container {
     padding: 8% 5%;
   }
- 
+
   #about-container h3 {
     font-size: 1.5rem;
     text-align: center;
   }
- 
+
   #about-container p {
     font-size: 1rem;
   }
- 
- 
+
+
   /* =========================
      AUTH PAGE
   ========================= */
- 
+
   .auth-form {
     padding: 28px 20px;
     width: 92%;
   }
- 
+
   .auth-message-box {
     padding: 24px 20px;
     font-size: 1rem;
     text-align: center;
   }
- 
- 
+
+
   /* =========================
      ORGANIZATIONS PAGE
   ========================= */
- 
+
   .search-container {
     margin: 4% 5%;
     padding: 3% 4%;
     grid-template-columns: 1fr;
     gap: 10px;
   }
- 
+
   .search-input {
     max-width: 100%;
   }
- 
+
   .add-org-btn {
     width: 100%;
     text-align: center;
     padding: 12px;
   }
- 
+
   .org-grid {
     margin: 0 5% 6% 5%;
     grid-template-columns: 1fr;
     gap: 20px;
   }
- 
+
   .org-card {
     min-height: unset;
   }
- 
+
   .org-card img {
     height: 200px;
   }
- 
- 
+
+
   /* =========================
      CREATE ORG PAGE
   ========================= */
- 
+
   .create-org-page {
     margin: 4% 5%;
     padding: 4% 4%;
   }
- 
+
   .create-org-page input,
   .create-org-page textarea {
     margin: 5px 0;
     width: 100%;
   }
- 
- 
+
+
   /* =========================
      ORGANIZATION DYNAMIC PAGE
   ========================= */
- 
+
   .org-banner-section {
     height: 220px;
   }
- 
+
   .org-main-section {
     margin: 0 4%;
     padding: 20px 16px;
     text-align: center;
   }
- 
+
   .org-page-logo {
     width: 120px;
     height: 120px;
     margin-top: -80px;
   }
- 
+
   .org-page-title {
     font-size: 1.6rem;
   }
- 
+
   .org-page-description {
     font-size: 0.95rem;
   }
- 
+
   .org-events-section {
     margin: 6% 5%;
     gap: 20px;
   }
- 
+
   .org-events-heading h2 {
     font-size: 1.4rem;
     margin-bottom: 16px;
   }
- 
+
   .org-events-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
- 
+
   .org-events-header h3 {
     font-size: 20px;
   }
- 
- 
+
+
   /* =========================
      EVENTS PAGE
   ========================= */
- 
+
   #Events-grid-box {
     margin: 0 5%;
   }
- 
+
   .events-search-container {
     margin: 14px 5%;
     padding: 16px;
     gap: 10px;
   }
- 
+
   .events-search-input {
     min-width: unset;
     width: 100%;
   }
- 
+
   .events-sort-select {
     width: 100%;
     min-width: unset;
   }
- 
+
   .events-add-btn {
     width: 100%;
     justify-content: center;
   }
- 
- 
+
+
   /* =========================
      EVENT CREATION PAGE
   ========================= */
- 
+
   .event-create-section {
     margin: 4% 5%;
     padding: 4% 4%;
   }
- 
+
   .event-create-form input,
   .event-create-form textarea,
   .event-create-form select {
     margin: 5px 0;
     width: 100%;
   }
- 
+
   .event-create-form button {
     width: 100%;
   }
- 
- 
+
+
   /* =========================
      EVENT DETAIL PAGE
   ========================= */
- 
+
   .event-page-section {
     padding: 20px 10px;
   }
- 
+
   .event-page-image {
     height: 200px;
   }
- 
+
   .event-content {
     padding: 16px;
   }
- 
+
   .event-title {
     font-size: 22px;
   }
- 
+
   .event-actions {
     flex-wrap: wrap;
   }
- 
+
   .event-save-btn,
   .event-delete-btn,
   .event-edit-btn {
     width: 100%;
     padding: 12px;
   }
- 
- 
+
+
   /* =========================
      MODAL
   ========================= */
- 
+
   .modal-overlay {
     padding: 12px;
   }
- 
+
   .modal-content {
     width: 100%;
     padding: 18px;
   }
- 
+
   .edit-modal {
     padding: 20px;
   }
- 
+
   .edit-modal-buttons {
     flex-direction: column;
   }
- 
+
   .edit-modal-buttons button {
     width: 100%;
   }
- 
- 
+
+
   /* =========================
      PROFILE PAGE
   ========================= */
- 
+
   .profile-banner {
     height: 180px;
   }
- 
+
   .profile-card {
     width: 94%;
     margin: -60px auto 0 auto;
     padding: 20px 16px;
   }
- 
+
   .profile-main-pic {
     width: 100px;
     height: 100px;
     margin-top: -70px;
   }
- 
+
   .profile-card h1 {
     font-size: 1.5rem;
   }
- 
+
   .profile-stats {
     flex-direction: column;
     align-items: center;
     gap: 14px;
     padding: 16px 5%;
   }
- 
+
   .profile-stat-box {
     width: 100%;
   }
- 
+
   .profile-section {
     padding: 24px 5%;
   }
- 
+
   .edit-profile-btn {
     width: 100%;
     padding: 12px;
   }
- 
- 
+
+
   /* =========================
      ABOUT PAGE
   ========================= */
- 
+
   .about-hero {
     padding: 50px 16px;
   }
- 
+
   .about-title {
     font-size: 38px;
   }
- 
+
   .about-subtitle {
     font-size: 16px;
   }
- 
+
   .about-container {
     padding: 40px 16px;
   }
- 
+
   .about-card {
     padding: 28px 20px;
   }
- 
+
   .about-card h2 {
     font-size: 28px;
   }
- 
+
   .about-card p {
     font-size: 16px;
   }
- 
+
   .offer-section {
     margin-top: 40px;
   }
- 
+
   .offer-title {
     font-size: 30px;
     margin-bottom: 28px;
   }
- 
+
   .offer-grid {
     grid-template-columns: 1fr;
     gap: 18px;
   }
- 
+
   .offer-card {
     padding: 30px 20px;
   }
- 
+
   .offer-card h3 {
     font-size: 22px;
   }
- 
+
   .offer-card p {
     font-size: 16px;
   }
- 
+
   .about-cta {
     margin-top: 40px;
     padding: 40px 16px;
   }
- 
+
   .about-cta h2 {
     font-size: 30px;
   }
- 
+
   .about-cta p {
     font-size: 16px;
     margin-bottom: 24px;
   }
- 
+
   .about-btn {
     padding: 14px 24px;
     font-size: 16px;
   }
- 
- 
+
+
   /* =========================
      ADMIN PAGE
   ========================= */
- 
+
   .admin-page {
     margin: 0 5%;
     padding: 24px 0;
   }
- 
+
   .admin-title {
     font-size: 24px;
   }
- 
+
   .admin-section-title {
     font-size: 18px;
   }
- 
+
   .admin-list {
     grid-template-columns: 1fr;
   }
- 
+
   .admin-actions {
     flex-wrap: wrap;
   }
- 
+
   .admin-btn {
     flex: 1;
     min-width: 80px;
     text-align: center;
   }
- 
+
 } /* end @media (max-width: 768px) */
