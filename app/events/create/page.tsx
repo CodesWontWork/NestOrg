@@ -60,7 +60,7 @@ export default function EventCreatePage() {
         .from("organizations")
         .select("*")
         .eq("owner_id", user.id)
-        .single();
+        
 
       if (!error) {
         setUserOrg(data);

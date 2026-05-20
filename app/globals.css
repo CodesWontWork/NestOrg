@@ -51,6 +51,19 @@ main {
   min-height: 100vh;
 }
 
+.admin-link {
+  text-decoration: none;
+  color: var(--text-black);
+  font-weight: bold;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background-color: rgba(255, 0, 0, 0.282);
+}
+
+.admin-link:hover {
+  background-color: rgba(255, 0, 0, 0.873);
+}
+
 body {
   background: var(--bg-color1);
   color: var(--text-black);
@@ -1979,4 +1992,158 @@ header {
 
 .about-btn:hover {
     transform: scale(1.03);
+}
+
+
+/* =========================
+   ADMIN PAGE BASE
+========================= */
+
+.admin-page {
+    padding: 40px 0 40px 0;
+    background: var(--bg-color2);
+    min-height: 100vh;
+    color: var(--text-black);
+    margin: auto 15% auto 15%;
+}
+
+.admin-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    color: var(--text-black);
+}
+
+/* =========================
+   SECTION HEADERS
+========================= */
+
+.admin-section-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 30px 0 15px;
+    color: var(--text-black-light);
+}
+
+/* =========================
+   GRID LAYOUT
+========================= */
+
+.admin-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 15px;
+}
+
+/* =========================
+   CARD STYLE
+========================= */
+
+.admin-card {
+    background: var(--bg-color1);
+    border: 1px solid var(--bg-color3);
+    border-radius: 12px;
+    padding: 15px 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+}
+
+/* =========================
+   ITEM HEADER
+========================= */
+
+.admin-card-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-black);
+}
+
+.admin-tag {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg-color3);
+    color: var(--text-black-light);
+    margin-right: 6px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.admin-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.admin-btn {
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+/* approve */
+.admin-btn-approve {
+    background: var(--green2);
+    color: var(--text-white);
+}
+
+.admin-btn-approve:hover {
+    background: var(--green1);
+}
+
+/* delete */
+.admin-btn-delete {
+    background: transparent;
+    border: 1px solid #ff4d4d;
+    color: #ff4d4d;
+}
+
+.admin-btn-delete:hover {
+    background: #ff4d4d;
+    color: white;
+}
+
+/* unapprove */
+.admin-btn-unapprove {
+    background: var(--bg-color3);
+    color: var(--text-black);
+}
+
+.admin-btn-unapprove:hover {
+    background: var(--bg-color2);
+}
+
+.admin-card-link {
+    color: var(--text-black);
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.admin-card-link:hover {
+    color: var(--green2);
+    text-decoration: underline;
+}
+
+.admin-link-title {
+    margin-left: 8px;
+    color: var(--green2);
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.admin-link-title:hover {
+    color: var(--green1);
+    text-decoration: underline;
 }

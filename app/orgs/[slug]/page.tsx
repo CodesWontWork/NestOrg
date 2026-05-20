@@ -8,36 +8,56 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EventsGrid from "@/components/EventsGrid";
 
-
 export default function OrganizationPage() {
-
-  // =========================================================
-  // GET SLUG
-  // =========================================================
   const params = useParams();
   const slug = params.slug;
 
-  // =========================================================
-  // ORG DATA
-  // =========================================================
   const [org, setOrg] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // =========================================================
+  // CHECK ADMIN
+  // =========================================================
+  const checkAdmin = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("admin")
+      .eq("id", userId)
+      .single();
+
+    return data?.admin === true;
+  };
+
   useEffect(() => {
-
     async function fetchOrg() {
-
       setLoading(true);
 
-      
+      // =====================================================
+      // GET USER + ADMIN STATUS
+      // =====================================================
+      const { data: auth } = await supabase.auth.getUser();
+      const user = auth?.user;
+
+      let admin = false;
+
+      if (user) {
+        admin = await checkAdmin(user.id);
+        setIsAdmin(admin);
+      }
+
+      // =====================================================
+      // GET ORGANIZATION
+      // =====================================================
       const { data: orgData, error: orgError } = await supabase
         .from("organizations")
         .select("*")
         .eq("slug", slug)
         .single();
 
-      if (orgError) {
+      if (orgError || !orgData) {
         console.error(orgError);
         setLoading(false);
         return;
@@ -45,13 +65,21 @@ export default function OrganizationPage() {
 
       setOrg(orgData);
 
-      
-      const { data: eventData, error: eventError } = await supabase
+      // =====================================================
+      // GET EVENTS (ADMIN vs NORMAL USER)
+      // =====================================================
+      let query = supabase
         .from("events")
         .select("*")
         .eq("org_id", orgData.id)
-        .eq("approved", true)
         .order("created_at", { ascending: false });
+
+      // 👇 ONLY APPLY FILTER FOR NON-ADMINS
+      if (!admin) {
+        query = query.eq("approved", true);
+      }
+
+      const { data: eventData, error: eventError } = await query;
 
       if (eventError) {
         console.error(eventError);
@@ -65,10 +93,11 @@ export default function OrganizationPage() {
     if (slug) {
       fetchOrg();
     }
-
   }, [slug]);
 
-
+  // =========================================================
+  // LOADING
+  // =========================================================
   if (loading) {
     return <p className="org-loading">Loading organization...</p>;
   }
@@ -76,30 +105,23 @@ export default function OrganizationPage() {
   if (!org) {
     return <p className="org-loading">Organization not found.</p>;
   }
-  
 
   return (
     <main>
-
       <Header />
 
-      
+      {/* ========================= BANNER ========================= */}
       <section className="org-banner-section">
-
         <img
           src={org.banner_url || "/images/default-banner.jpg"}
           alt="banner"
           className="org-banner"
         />
-
         <div className="org-banner-overlay"></div>
-
       </section>
 
-      
+      {/* ========================= MAIN ========================= */}
       <section className="org-main-section">
-
-        
         <img
           src={
             org.logo_url?.startsWith("http")
@@ -113,55 +135,43 @@ export default function OrganizationPage() {
           }}
         />
 
-        
-        <h1 className="org-page-title">
-          {org.name}
-        </h1>
+        <h1 className="org-page-title">{org.name}</h1>
 
-        
         <div className="org-page-tags">
-
           {(Array.isArray(org.tags)
             ? org.tags
             : JSON.parse(org.tags || "[]")
           ).map((tag: string, i: number) => (
-
-            <span key={i}>
-              #{tag}
-            </span>
-
+            <span key={i}>#{tag}</span>
           ))}
-
         </div>
 
-       
-        <p className="org-page-description">
-          {org.description}
-        </p>
+        <p className="org-page-description">{org.description}</p>
 
+        {isAdmin && (
+          <p style={{ color: "green", fontSize: "12px" }}>
+            Admin view: showing unapproved events
+          </p>
+        )}
       </section>
 
+      {/* ========================= EVENTS ========================= */}
       <section className="org-events-section">
+        <div className="org-events-header">
+          <div>
+            <h3>Events</h3>
+            <p>Events from {org.name}</p>
+          </div>
 
-              
-              <div className="org-events-header">
-                <div>
-                  <h3>Events</h3>
-                  <p>Events from {org.name}</p>
-                </div>
+          <Link href="/events" className="org-events-viewall">
+            View All Events
+          </Link>
+        </div>
 
-                <Link href="/events" className="org-events-viewall">
-                  View All Events
-                </Link>
-              </div>
-
-
-              <EventsGrid events={events} />
-
+        <EventsGrid events={events} />
       </section>
 
       <Footer />
-
     </main>
   );
 }

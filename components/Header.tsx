@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 export default function Header() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   const user = session?.user ?? null;
@@ -38,11 +39,12 @@ export default function Header() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url, username")
+        .select("avatar_url, username, admin")
         .eq("id", user.id)
         .single();
 
       setProfile(data);
+      setIsAdmin(data?.admin ?? false);
     }
 
     loadProfile();
@@ -98,11 +100,16 @@ export default function Header() {
 
         {/* RIGHT */}
         <div className="header-right-box">
-
+          
           <Link className="header-link" href="/">Home</Link>
           <Link className="header-link" href="/orgs">Organizations</Link>
           <Link className="header-link" href="/events">Events</Link>
           <Link className="header-link" href="/about">About</Link>
+          {isAdmin && (
+            <Link className="admin-link" href="/admin">
+              Admin
+            </Link>
+          )}
 
           {/* DARK MODE */}
           <img
