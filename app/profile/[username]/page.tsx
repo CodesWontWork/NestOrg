@@ -213,7 +213,7 @@ export default function ProfilePage() {
 
         </div>
 
-        {/* ORG MEMBERSHIP */}
+        {/*          
         <div className="profile-stat-box">
 
           <h2>
@@ -222,14 +222,12 @@ export default function ProfilePage() {
 
           <p>Organization Memberships</p>
 
-        </div>
+        </div>*/}
 
-      </section>
+      </section> 
 
-      {/* =========================================================
-          ORG MEMBERSHIPS
-      ========================================================= */}
-      <section className="profile-section">
+      
+      {/* <section className="profile-section">
 
         <h2>Organization Memberships</h2>
 
@@ -247,7 +245,7 @@ export default function ProfilePage() {
 
         </div>
 
-      </section>
+      </section> */}
 
       {/* =========================================================
           EVENTS CREATED

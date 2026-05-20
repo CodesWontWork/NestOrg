@@ -1,14 +1,7 @@
 
 Things to do mann:
-
--profile page (basic info like what org are you on or what events you made)
--event page (for the more detailed info of an event, prob need to redo the events table fuck)
--admin pages (so I dont have to go manually to the database)
+-mobile css
 -org members (member role for members of an org)
--org deletion (can only be done by creator of org)
--event deletion (can only be done by creator of event)
--event tags (forgot to add that early on)
--about page (this one is easy)
 -no making events that have dates that have already happened
 
 

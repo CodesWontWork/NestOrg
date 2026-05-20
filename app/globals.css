@@ -28,11 +28,11 @@
     --green2: #507914;
 }
 
-.darkmode .icon {
+.darkmode .icon, .darkmode .profile-pic{
     filter: invert(0%);
 }
 
-.icon {
+.icon, .profile-pic{
     filter: invert(100%);
 }
 

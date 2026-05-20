@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
@@ -10,17 +9,20 @@ import Footer from "@/components/Footer";
 export default function EventCreatePage() {
 
   // =========================
-  // SLUG GENERATOR (FIX ADDED)
+  // SLUG GENERATOR
   // =========================
   function generateSlug(title: string) {
     return title
       .toLowerCase()
       .trim()
-      .replace(/[^a-z0-9\s-]/g, "") // remove special characters
-      .replace(/\s+/g, "-")        // spaces → dash
-      .replace(/-+/g, "-");        // collapse multiple dashes
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
   }
 
+  // =========================
+  // AUTH
+  // =========================
   const [session, setSession] = useState<Session | null>(null);
   const user = session?.user ?? null;
 
@@ -40,32 +42,42 @@ export default function EventCreatePage() {
 
   }, []);
 
-  async function logout() {
-    await supabase.auth.signOut();
-    setSession(null);
-  }
-
   // =========================
   // USER ORGANIZATION
   // =========================
   const [userOrg, setUserOrg] = useState<any>(null);
+  const [checkingOrg, setCheckingOrg] = useState(true);
 
   useEffect(() => {
 
     async function fetchUserOrg() {
 
-      if (!user) return;
+      if (!user) {
+        setCheckingOrg(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("organizations")
         .select("*")
-        .eq("owner_id", user.id)
-        
+        .eq("owner_id", user.id);
 
-      if (!error) {
-        setUserOrg(data);
+      console.log("ORG QUERY:", data, error);
+
+      if (error) {
+        console.error(error);
+        setCheckingOrg(false);
+        return;
       }
 
+      // ✅ FIX: TAKE FIRST ORG
+      if (data && data.length > 0) {
+        setUserOrg(data[0]);
+      } else {
+        setUserOrg(null);
+      }
+
+      setCheckingOrg(false);
     }
 
     fetchUserOrg();
@@ -110,11 +122,12 @@ export default function EventCreatePage() {
       .map((tag) => tag.trim())
       .filter((tag) => tag !== "");
 
-    // =========================
-    // FIX: CREATE SLUG HERE
-    // =========================
+    // create slug
     const slug = generateSlug(title);
 
+    // =========================
+    // INSERT EVENT
+    // =========================
     const { error } = await supabase
       .from("events")
       .insert({
@@ -125,10 +138,12 @@ export default function EventCreatePage() {
         event_date: eventDate,
         tags: tagArray,
 
-        slug, // ✅ IMPORTANT FIX
+        slug,
 
+        // ✅ FIXED ORG DATA
         org_id: userOrg.id,
         org_name: userOrg.name,
+
         created_by: user.id,
 
         approved: false,
@@ -136,8 +151,10 @@ export default function EventCreatePage() {
       });
 
     if (error) {
+      console.error(error);
       setMessage(error.message);
     } else {
+
       setMessage("Event submitted for approval!");
 
       setTitle("");
@@ -155,19 +172,42 @@ export default function EventCreatePage() {
 
       <Header />
 
-      {/* FORM */}
+      {/* =========================
+          FORM
+      ========================= */}
       <section className="event-create-section">
 
-        <form className="event-create-form" onSubmit={handleCreateEvent}>
+        <form
+          className="event-create-form"
+          onSubmit={handleCreateEvent}
+        >
 
           <h1>Create Event</h1>
 
-          {userOrg && (
+          {/* =========================
+              ORG STATUS
+          ========================= */}
+          {checkingOrg ? (
+
+            <p className="event-org-display">
+              Checking organization...
+            </p>
+
+          ) : userOrg ? (
+
             <p className="event-org-display">
               Posting as: {userOrg.name}
             </p>
+
+          ) : (
+
+            <p className="event-org-display">
+              No organization assigned to your account.
+            </p>
+
           )}
 
+          {/* TITLE */}
           <input
             type="text"
             placeholder="Event Title"
@@ -176,6 +216,7 @@ export default function EventCreatePage() {
             required
           />
 
+          {/* DESCRIPTION */}
           <textarea
             placeholder="Event Description"
             value={description}
@@ -183,6 +224,7 @@ export default function EventCreatePage() {
             required
           />
 
+          {/* IMAGE */}
           <input
             type="text"
             placeholder="Image URL"
@@ -190,12 +232,14 @@ export default function EventCreatePage() {
             onChange={(e) => setImageUrl(e.target.value)}
           />
 
+          {/* DATE */}
           <input
             type="date"
             value={eventDate}
             onChange={(e) => setEventDate(e.target.value)}
           />
 
+          {/* TAGS */}
           <input
             type="text"
             placeholder="Tags (example: seminar, technology, workshop)"
@@ -203,10 +247,12 @@ export default function EventCreatePage() {
             onChange={(e) => setTags(e.target.value)}
           />
 
+          {/* SUBMIT */}
           <button disabled={loading}>
             {loading ? "Creating..." : "Create Event"}
           </button>
 
+          {/* MESSAGE */}
           {message && (
             <p className="event-create-message">
               {message}
@@ -217,7 +263,7 @@ export default function EventCreatePage() {
 
       </section>
 
-     <Footer />
+      <Footer />
 
     </main>
   );
