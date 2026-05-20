@@ -147,7 +147,7 @@ export default function EventsGrid({
 
               {/* HYPE */}
               <div className="event-card-hype">
-                🔥 {hypeCounts[event.id] || 0} hype
+              {hypeCounts[event.id] || 0} hype
               </div>
 
               {/* DESCRIPTION */}
