@@ -7,10 +7,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function EventCreatePage() {
-
-  // =========================
-  // SLUG GENERATOR
-  // =========================
   function generateSlug(title: string) {
     return title
       .toLowerCase()
@@ -20,19 +16,11 @@ export default function EventCreatePage() {
       .replace(/-+/g, "-");
   }
 
-  // =========================
-  // TODAY DATE (FOR VALIDATION)
-  // =========================
   const today = new Date().toISOString().split("T")[0];
-
-  // =========================
-  // AUTH
-  // =========================
   const [session, setSession] = useState<Session | null>(null);
   const user = session?.user ?? null;
 
   useEffect(() => {
-
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
     });
@@ -44,19 +32,13 @@ export default function EventCreatePage() {
     });
 
     return () => subscription.unsubscribe();
-
   }, []);
 
-  // =========================
-  // USER ORGANIZATION
-  // =========================
   const [userOrg, setUserOrg] = useState<any>(null);
   const [checkingOrg, setCheckingOrg] = useState(true);
 
   useEffect(() => {
-
     async function fetchUserOrg() {
-
       if (!user) {
         setCheckingOrg(false);
         return;
@@ -75,7 +57,6 @@ export default function EventCreatePage() {
         return;
       }
 
-      // TAKE FIRST ORG
       if (data && data.length > 0) {
         setUserOrg(data[0]);
       } else {
@@ -86,12 +67,8 @@ export default function EventCreatePage() {
     }
 
     fetchUserOrg();
-
   }, [user]);
 
-  // =========================
-  // FORM STATE
-  // =========================
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -101,11 +78,7 @@ export default function EventCreatePage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // =========================
-  // CREATE EVENT
-  // =========================
   async function handleCreateEvent(e: React.FormEvent) {
-
     e.preventDefault();
 
     if (!user) {
@@ -118,15 +91,11 @@ export default function EventCreatePage() {
       return;
     }
 
-    // =========================
-    // DATE VALIDATION
-    // =========================
     if (!eventDate) {
       setMessage("Please select an event date.");
       return;
     }
 
-    // compare selected date with today
     if (eventDate < today) {
       setMessage("You cannot create an event with a past date.");
       return;
@@ -135,45 +104,35 @@ export default function EventCreatePage() {
     setLoading(true);
     setMessage("");
 
-    // convert comma tags into array
     const tagArray = tags
       .split(",")
       .map((tag) => tag.trim())
       .filter((tag) => tag !== "");
 
-    // create slug
     const slug = generateSlug(title);
 
-    // =========================
-    // INSERT EVENT
-    // =========================
-    const { error } = await supabase
-      .from("events")
-      .insert({
+    const { error } = await supabase.from("events").insert({
+      title,
+      description,
+      image_url: imageUrl,
+      event_date: eventDate,
+      tags: tagArray,
 
-        title,
-        description,
-        image_url: imageUrl,
-        event_date: eventDate,
-        tags: tagArray,
+      slug,
 
-        slug,
+      org_id: userOrg.id,
+      org_name: userOrg.name,
 
-        org_id: userOrg.id,
-        org_name: userOrg.name,
+      created_by: user.id,
 
-        created_by: user.id,
-
-        approved: false,
-        created_at: new Date().toISOString(),
-      });
+      approved: false,
+      created_at: new Date().toISOString(),
+    });
 
     if (error) {
       console.error(error);
       setMessage(error.message);
-
     } else {
-
       setMessage("Event submitted for approval!");
 
       setTitle("");
@@ -188,45 +147,22 @@ export default function EventCreatePage() {
 
   return (
     <main>
-
       <Header />
 
-      {/* =========================
-          FORM
-      ========================= */}
       <section className="event-create-section">
-
-        <form
-          className="event-create-form"
-          onSubmit={handleCreateEvent}
-        >
-
+        <form className="event-create-form" onSubmit={handleCreateEvent}>
           <h1>Create Event</h1>
 
-          {/* =========================
-              ORG STATUS
-          ========================= */}
           {checkingOrg ? (
-
-            <p className="event-org-display">
-              Checking organization...
-            </p>
-
+            <p className="event-org-display">Checking organization...</p>
           ) : userOrg ? (
-
-            <p className="event-org-display">
-              Posting as: {userOrg.name}
-            </p>
-
+            <p className="event-org-display">Posting as: {userOrg.name}</p>
           ) : (
-
             <p className="event-org-display">
               No organization assigned to your account.
             </p>
-
           )}
 
-          {/* TITLE */}
           <input
             type="text"
             placeholder="Event Title"
@@ -235,7 +171,6 @@ export default function EventCreatePage() {
             required
           />
 
-          {/* DESCRIPTION */}
           <textarea
             placeholder="Event Description"
             value={description}
@@ -243,7 +178,6 @@ export default function EventCreatePage() {
             required
           />
 
-          {/* IMAGE */}
           <input
             type="text"
             placeholder="Image URL"
@@ -251,7 +185,6 @@ export default function EventCreatePage() {
             onChange={(e) => setImageUrl(e.target.value)}
           />
 
-          {/* DATE */}
           <input
             type="date"
             value={eventDate}
@@ -260,7 +193,6 @@ export default function EventCreatePage() {
             required
           />
 
-          {/* TAGS */}
           <input
             type="text"
             placeholder="Tags (example: seminar, technology, workshop)"
@@ -268,24 +200,15 @@ export default function EventCreatePage() {
             onChange={(e) => setTags(e.target.value)}
           />
 
-          {/* SUBMIT */}
           <button disabled={loading}>
             {loading ? "Creating..." : "Create Event"}
           </button>
 
-          {/* MESSAGE */}
-          {message && (
-            <p className="event-create-message">
-              {message}
-            </p>
-          )}
-
+          {message && <p className="event-create-message">{message}</p>}
         </form>
-
       </section>
 
       <Footer />
-
     </main>
   );
 }

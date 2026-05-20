@@ -17,16 +17,11 @@ type Item = {
 
 export default function AdminPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-
   const [organizations, setOrganizations] = useState<Item[]>([]);
   const [events, setEvents] = useState<Item[]>([]);
 
-  // =========================
-  // CHECK ADMIN
-  // =========================
   useEffect(() => {
     const checkAdmin = async () => {
       const { data: authData } = await supabase.auth.getUser();
@@ -54,9 +49,6 @@ export default function AdminPage() {
     checkAdmin();
   }, []);
 
-  // =========================
-  // FETCH DATA
-  // =========================
   const fetchData = async () => {
     setLoading(true);
 
@@ -69,11 +61,11 @@ export default function AdminPage() {
       setOrganizations(
         orgRes.data.map((o: any) => ({
           id: o.id,
-          slug: o.slug, // ✅ IMPORTANT
+          slug: o.slug,
           name: o.name,
           approved: o.approved,
           type: "organization",
-        }))
+        })),
       );
     }
 
@@ -81,20 +73,17 @@ export default function AdminPage() {
       setEvents(
         eventRes.data.map((e: any) => ({
           id: e.id,
-          slug: e.slug || e.id, // fallback if no slug exists
+          slug: e.slug || e.id,
           name: e.title ?? e.name,
           approved: e.approved,
           type: "event",
-        }))
+        })),
       );
     }
 
     setLoading(false);
   };
 
-  // =========================
-  // TOGGLE APPROVE
-  // =========================
   const toggleApprove = async (item: Item) => {
     const table = item.type === "organization" ? "organizations" : "events";
 
@@ -106,9 +95,6 @@ export default function AdminPage() {
     fetchData();
   };
 
-  // =========================
-  // DELETE ITEM
-  // =========================
   const deleteItem = async (item: Item) => {
     const table = item.type === "organization" ? "organizations" : "events";
 
@@ -128,11 +114,11 @@ export default function AdminPage() {
   }
 
   const pending = [...organizations, ...events].filter(
-    (i) => i.approved !== true
+    (i) => i.approved !== true,
   );
 
   const approved = [...organizations, ...events].filter(
-    (i) => i.approved === true
+    (i) => i.approved === true,
   );
 
   return (
@@ -146,13 +132,11 @@ export default function AdminPage() {
           <p>Loading...</p>
         ) : (
           <>
-            {/* ========================= PENDING ========================= */}
             <h2 className="admin-section-title">Pending Approval</h2>
 
             <div className="admin-list">
               {pending.map((item) => (
                 <div key={`${item.type}-${item.id}`} className="admin-card">
-
                   <div className="admin-card-title">
                     <span className="admin-tag">{item.type}</span>
 
@@ -187,13 +171,11 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* ========================= APPROVED ========================= */}
             <h2 className="admin-section-title">Approved</h2>
 
             <div className="admin-list">
               {approved.map((item) => (
                 <div key={`${item.type}-${item.id}`} className="admin-card">
-
                   <div className="admin-card-title">
                     <span className="admin-tag">{item.type}</span>
 

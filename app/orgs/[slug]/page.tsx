@@ -18,9 +18,6 @@ export default function OrganizationPage() {
 
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // =========================================================
-  // CHECK ADMIN
-  // =========================================================
   const checkAdmin = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
@@ -35,9 +32,6 @@ export default function OrganizationPage() {
     async function fetchOrg() {
       setLoading(true);
 
-      // =====================================================
-      // GET USER + ADMIN STATUS
-      // =====================================================
       const { data: auth } = await supabase.auth.getUser();
       const user = auth?.user;
 
@@ -48,9 +42,6 @@ export default function OrganizationPage() {
         setIsAdmin(admin);
       }
 
-      // =====================================================
-      // GET ORGANIZATION
-      // =====================================================
       const { data: orgData, error: orgError } = await supabase
         .from("organizations")
         .select("*")
@@ -65,16 +56,12 @@ export default function OrganizationPage() {
 
       setOrg(orgData);
 
-      // =====================================================
-      // GET EVENTS (ADMIN vs NORMAL USER)
-      // =====================================================
       let query = supabase
         .from("events")
         .select("*")
         .eq("org_id", orgData.id)
         .order("created_at", { ascending: false });
 
-      // 👇 ONLY APPLY FILTER FOR NON-ADMINS
       if (!admin) {
         query = query.eq("approved", true);
       }
@@ -95,9 +82,6 @@ export default function OrganizationPage() {
     }
   }, [slug]);
 
-  // =========================================================
-  // LOADING
-  // =========================================================
   if (loading) {
     return <p className="org-loading">Loading organization...</p>;
   }
@@ -110,7 +94,6 @@ export default function OrganizationPage() {
     <main>
       <Header />
 
-      {/* ========================= BANNER ========================= */}
       <section className="org-banner-section">
         <img
           src={org.banner_url || "/images/default-banner.jpg"}
@@ -120,7 +103,6 @@ export default function OrganizationPage() {
         <div className="org-banner-overlay"></div>
       </section>
 
-      {/* ========================= MAIN ========================= */}
       <section className="org-main-section">
         <img
           src={
@@ -155,7 +137,6 @@ export default function OrganizationPage() {
         )}
       </section>
 
-      {/* ========================= EVENTS ========================= */}
       <section className="org-events-section">
         <div className="org-events-header">
           <div>

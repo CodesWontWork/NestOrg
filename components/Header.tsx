@@ -67,7 +67,6 @@ export default function Header() {
     }
   }
 
-
   async function logout() {
     await supabase.auth.signOut();
     setSession(null);
@@ -76,7 +75,6 @@ export default function Header() {
   return (
     <header>
       <div className="header-main-box">
-
         <div className="header-left-box">
           <img src="/images/hornet-icon.png" alt="logo" />
 
@@ -87,11 +85,18 @@ export default function Header() {
         </div>
 
         <div className="header-right-box">
-          
-          <Link className="header-link" href="/">Home</Link>
-          <Link className="header-link" href="/orgs">Organizations</Link>
-          <Link className="header-link" href="/events">Events</Link>
-          <Link className="header-link" href="/about">About</Link>
+          <Link className="header-link" href="/">
+            Home
+          </Link>
+          <Link className="header-link" href="/orgs">
+            Organizations
+          </Link>
+          <Link className="header-link" href="/events">
+            Events
+          </Link>
+          <Link className="header-link" href="/about">
+            About
+          </Link>
           {isAdmin && (
             <Link className="admin-link" href="/admin">
               Admin
@@ -106,7 +111,6 @@ export default function Header() {
           />
 
           <div className="auth-section">
-
             {!user && (
               <Link href="/auth" className="login-link">
                 Login
@@ -115,7 +119,6 @@ export default function Header() {
 
             {user && (
               <div className="user-box">
-
                 <button onClick={logout} className="logout-btn">
                   Logout
                 </button>
@@ -133,14 +136,10 @@ export default function Header() {
                     alt="profile"
                   />
                 </Link>
-
               </div>
             )}
-
           </div>
-
         </div>
-
       </div>
     </header>
   );

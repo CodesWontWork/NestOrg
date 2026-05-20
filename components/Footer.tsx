@@ -1,10 +1,8 @@
 export default function Footer() {
   return (
     <footer className="footer">
-
       <div className="footer-top">
         <div className="footer-boxes">
-
           <h3>Contact Us</h3>
 
           <div className="footer-contact">
@@ -26,7 +24,6 @@ export default function Footer() {
               Cavite State University, Indang, Cavite
             </p>
           </div>
-
         </div>
       </div>
 
@@ -35,7 +32,6 @@ export default function Footer() {
       <div className="footer-bottom">
         <p>© 2026 NestOrg. All rights reserved.</p>
       </div>
-
     </footer>
   );
 }

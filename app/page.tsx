@@ -16,7 +16,6 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchEvents() {
-
       setLoading(true);
 
       const { data, error } = await supabase
@@ -31,16 +30,8 @@ export default function Home() {
         return;
       }
 
-      // =========================================
-      // ✅ ADD HYPE COUNTS
-      // =========================================
       const eventsWithHype = await Promise.all(
-
         (data || []).map(async (event) => {
-
-          // =========================================
-          // ✅ HYPE COUNT FETCH
-          // =========================================
           const { count } = await supabase
             .from("event_hype")
             .select("*", {
@@ -53,10 +44,9 @@ export default function Home() {
             ...event,
             hype_count: count || 0,
           };
-        })
+        }),
       );
 
-      // ✅ SET EVENTS WITH HYPE
       setEvents(eventsWithHype);
 
       setLoading(false);
@@ -66,8 +56,14 @@ export default function Home() {
 
     async function loadCounts() {
       const [eventsRes, orgsRes, usersRes] = await Promise.all([
-        supabase.from("events").select("*", { count: "exact", head: true }).eq("approved", true),
-        supabase.from("organizations").select("*", { count: "exact", head: true }).eq("approved", true),
+        supabase
+          .from("events")
+          .select("*", { count: "exact", head: true })
+          .eq("approved", true),
+        supabase
+          .from("organizations")
+          .select("*", { count: "exact", head: true })
+          .eq("approved", true),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
       ]);
 
@@ -97,16 +93,10 @@ export default function Home() {
 
       setEvents(data || []);
     }
-    
 
     loadEvents();
-
-    
   }, []);
 
-  // =========================
-  // IMAGE SAFETY
-  // =========================
   function getValidImage(url: string | null | undefined) {
     if (!url || typeof url !== "string") {
       return "/images/temp-event-image.png";
@@ -117,9 +107,6 @@ export default function Home() {
     return url;
   }
 
-  // =========================
-  // PARALLAX
-  // =========================
   const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
@@ -128,8 +115,7 @@ export default function Home() {
       const y = (e.clientY / window.innerHeight - 0.5) * 20;
 
       if (imageRef.current) {
-        imageRef.current.style.transform =
-          `translate(${x}px, ${y}px) scale(1.05)`;
+        imageRef.current.style.transform = `translate(${x}px, ${y}px) scale(1.05)`;
       }
     }
 
@@ -139,11 +125,9 @@ export default function Home() {
 
   return (
     <main>
-
       <Header />
 
       <section className="parallax-image-container">
-
         <img
           ref={imageRef}
           src="/images/parallax-image.jpg"
@@ -155,17 +139,9 @@ export default function Home() {
           <h2>Welcome to NestOrg</h2>
           <p>Your central hub for organizations at Cavite State University</p>
         </div>
-
       </section>
 
-
-      {/* =========================================================
-          COUNTER SECTION
-          - Displays live counts from database (events/orgs/users)
-      ========================================================= */}
       <section id="random-ahh-container">
-
-        {/* EVENTS COUNT */}
         <div className="rac-boxes">
           <img className="icon" src="/images/event_icon.svg" alt="" />
           <div>
@@ -174,7 +150,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ORGANIZATIONS COUNT */}
         <div className="rac-boxes">
           <img className="icon" src="/images/organization-icon.svg" alt="" />
           <div>
@@ -183,7 +158,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* USERS COUNT */}
         <div className="rac-boxes">
           <img className="icon" src="/images/profile-icon.svg" alt="" />
           <div>
@@ -191,15 +165,9 @@ export default function Home() {
             <p>Users</p>
           </div>
         </div>
-
       </section>
 
-
-      {/* =========================
-          EVENTS SECTION
-      ========================= */}
       <section id="home-events-section">
-
         <div id="uec-heading">
           <div>
             <h3>Events</h3>
@@ -210,11 +178,9 @@ export default function Home() {
         </div>
 
         <EventsGrid events={events} />
-
       </section>
 
       <Footer />
-
     </main>
   );
 }

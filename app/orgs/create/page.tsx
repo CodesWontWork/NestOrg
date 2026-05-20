@@ -8,16 +8,11 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function CreateOrganizationPage() {
-
-  // =========================
-  // AUTH
-  // =========================
   const [session, setSession] = useState<Session | null>(null);
 
   const user = session?.user ?? null;
 
   useEffect(() => {
-
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
     });
@@ -29,19 +24,13 @@ export default function CreateOrganizationPage() {
     });
 
     return () => subscription.unsubscribe();
-
   }, []);
 
   async function logout() {
-
     await supabase.auth.signOut();
     setSession(null);
-
   }
 
-  // =========================
-  // FORM STATES
-  // =========================
   const [orgName, setOrgName] = useState("");
   const [description, setDescription] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -50,57 +39,36 @@ export default function CreateOrganizationPage() {
 
   const [loading, setLoading] = useState(false);
 
-  // popup message
   const [message, setMessage] = useState("");
 
-  const [messageType, setMessageType] = useState<
-    "success" | "error"
-  >("success");
+  const [messageType, setMessageType] = useState<"success" | "error">(
+    "success",
+  );
 
-  // =========================
-  // CREATE SLUG
-  // =========================
   function createSlug(text: string) {
-
     return text
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-");
-
   }
 
-  // =========================
-  // CREATE ORGANIZATION
-  // =========================
   async function handleCreateOrg(e: React.FormEvent) {
-
     e.preventDefault();
 
     if (!user) {
-
       setMessageType("error");
 
-      setMessage(
-        "You must be logged in to create an organization."
-      );
+      setMessage("You must be logged in to create an organization.");
 
       return;
-
     }
 
     setLoading(true);
 
     try {
-
-      // =========================
-      // CREATE SLUG
-      // =========================
       const slug = createSlug(orgName);
 
-      // =========================
-      // CHECK IF SLUG EXISTS
-      // =========================
       const { data: existingOrg } = await supabase
         .from("organizations")
         .select("id")
@@ -108,113 +76,80 @@ export default function CreateOrganizationPage() {
         .single();
 
       if (existingOrg) {
-
         setMessageType("error");
 
-        setMessage(
-          "An organization with this name already exists."
-        );
+        setMessage("An organization with this name already exists.");
 
         setLoading(false);
 
         return;
-
       }
 
-      // =========================
-      // INSERT ORGANIZATION
-      // =========================
-      const { error } = await supabase
-        .from("organizations")
-        .insert([
+      const { error } = await supabase.from("organizations").insert([
+        {
+          name: orgName,
 
-          {
-            name: orgName,
+          slug,
 
-            slug,
+          description,
 
-            description,
+          logo_url: logoUrl,
 
-            logo_url: logoUrl,
+          banner_url: bannerUrl,
 
-            banner_url: bannerUrl,
+          tags: tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((tag) => tag !== ""),
 
-            tags: tags
-              .split(",")
-              .map((tag) => tag.trim())
-              .filter((tag) => tag !== ""),
+          created_by: user.id,
 
-            created_by: user.id,
+          owner_id: user.id,
 
-            // IMPORTANT:
-            // USER BECOMES OWNER
-            owner_id: user.id,
+          approved: false,
 
-            approved: false,
-
-            created_at: new Date().toISOString(),
-
-          },
-
-        ]);
+          created_at: new Date().toISOString(),
+        },
+      ]);
 
       if (error) {
-
         setMessageType("error");
 
         setMessage(error.message);
-
       } else {
-
         setMessageType("success");
 
         setMessage(
-          "Organization submitted successfully! Waiting for admin approval."
+          "Organization submitted successfully! Waiting for admin approval.",
         );
 
-        // CLEAR FORM
         setOrgName("");
         setDescription("");
         setLogoUrl("");
         setBannerUrl("");
         setTags("");
-
       }
-
     } catch (err) {
-
       setMessageType("error");
 
       setMessage("Something went wrong.");
-
     }
 
     setLoading(false);
-
   }
 
   return (
     <main>
-
       <Header />
 
-      {/* =========================================================
-          CREATE ORG FORM
-      ========================================================= */}
       <section className="create-org-page">
-
-        <form
-          onSubmit={handleCreateOrg}
-          className="create-org-form"
-        >
-
+        <form onSubmit={handleCreateOrg} className="create-org-form">
           <h1>Create Organization</h1>
 
           <p className="create-org-subtitle">
             Submit your organization for approval.
           </p>
 
-          {/* NAME */}
           <input
             type="text"
             placeholder="Organization Name"
@@ -223,7 +158,6 @@ export default function CreateOrganizationPage() {
             required
           />
 
-          {/* DESCRIPTION */}
           <textarea
             placeholder="Organization Description"
             value={description}
@@ -231,7 +165,6 @@ export default function CreateOrganizationPage() {
             required
           />
 
-          {/* LOGO URL */}
           <input
             type="text"
             placeholder="Logo Image URL"
@@ -239,7 +172,6 @@ export default function CreateOrganizationPage() {
             onChange={(e) => setLogoUrl(e.target.value)}
           />
 
-          {/* BANNER URL */}
           <input
             type="text"
             placeholder="Banner Image URL"
@@ -247,7 +179,6 @@ export default function CreateOrganizationPage() {
             onChange={(e) => setBannerUrl(e.target.value)}
           />
 
-          {/* TAGS */}
           <input
             type="text"
             placeholder="Tags (coding, gaming, arts)"
@@ -255,29 +186,15 @@ export default function CreateOrganizationPage() {
             onChange={(e) => setTags(e.target.value)}
           />
 
-          {/* SUBMIT */}
-          <button
-            type="submit"
-            disabled={loading}
-          >
-            {loading
-              ? "Submitting..."
-              : "Submit Organization"}
+          <button type="submit" disabled={loading}>
+            {loading ? "Submitting..." : "Submit Organization"}
           </button>
-
         </form>
-
       </section>
 
-      {/* =========================================================
-          POPUP MESSAGE
-      ========================================================= */}
       {message && (
-
         <div className="auth-message">
-
           <div className="auth-message-box">
-
             <button
               className="auth-message-close"
               onClick={() => setMessage("")}
@@ -286,16 +203,11 @@ export default function CreateOrganizationPage() {
             </button>
 
             <p>{message}</p>
-
           </div>
-
         </div>
-
       )}
 
       <Footer />
-
     </main>
   );
-
 }

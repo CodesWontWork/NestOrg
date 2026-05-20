@@ -11,13 +11,7 @@ export default function EventPage() {
   const params = useParams();
   const router = useRouter();
 
-  const slug = Array.isArray(params.slug)
-    ? params.slug[0]
-    : params.slug;
-
-  // =========================
-  // AUTH
-  // =========================
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
   const [session, setSession] = useState<Session | null>(null);
   const user = session?.user ?? null;
 
@@ -35,21 +29,11 @@ export default function EventPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // =========================
-  // EVENT STATE
-  // =========================
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  // =========================
-  // HYPE STATE
-  // =========================
   const [hypeCount, setHypeCount] = useState(0);
   const [hasHyped, setHasHyped] = useState(false);
 
-  // =========================
-  // FETCH EVENT
-  // =========================
   useEffect(() => {
     async function fetchEvent() {
       if (!slug) return;
@@ -79,9 +63,6 @@ export default function EventPage() {
 
       setEvent(data);
 
-      // =========================
-      // FETCH HYPE COUNT
-      // =========================
       const { count } = await supabase
         .from("event_hype")
         .select("*", { count: "exact", head: true })
@@ -89,9 +70,6 @@ export default function EventPage() {
 
       setHypeCount(count || 0);
 
-      // =========================
-      // CHECK USER HYPE
-      // =========================
       if (user) {
         const { data: hypeData } = await supabase
           .from("event_hype")
@@ -109,15 +87,10 @@ export default function EventPage() {
     fetchEvent();
   }, [slug, user]);
 
-  // =========================
-  // TOGGLE HYPE
-  // =========================
   async function toggleHype() {
     if (!user || !event) return;
 
     if (hasHyped) {
-
-      // REMOVE HYPE
       await supabase
         .from("event_hype")
         .delete()
@@ -126,16 +99,11 @@ export default function EventPage() {
 
       setHasHyped(false);
       setHypeCount((prev) => prev - 1);
-
     } else {
-
-      // ADD HYPE
-      const { error } = await supabase
-        .from("event_hype")
-        .insert({
-          event_id: event.id,
-          user_id: user.id,
-        });
+      const { error } = await supabase.from("event_hype").insert({
+        event_id: event.id,
+        user_id: user.id,
+      });
 
       if (!error) {
         setHasHyped(true);
@@ -144,9 +112,6 @@ export default function EventPage() {
     }
   }
 
-  // =========================
-  // TAGS SAFE PARSE
-  // =========================
   let parsedTags: string[] = [];
 
   try {
@@ -157,9 +122,6 @@ export default function EventPage() {
     parsedTags = [];
   }
 
-  // =========================
-  // IMAGE SAFE
-  // =========================
   function getImage(url: string) {
     if (!url || !url.startsWith("http")) {
       return "/images/temp-event-image.png";
@@ -173,12 +135,10 @@ export default function EventPage() {
 
   return (
     <main>
-
       <Header />
 
       <section className="event-page-section">
         <div className="event-page-container">
-
           <img
             src={getImage(event.image_url)}
             className="event-page-image"
@@ -186,12 +146,8 @@ export default function EventPage() {
           />
 
           <div className="event-content">
+            <h1 className="event-title">{event.title}</h1>
 
-            <h1 className="event-title">
-              {event.title}
-            </h1>
-
-            {/* DATE */}
             {event.event_date && (
               <p className="event-date">
                 {new Date(event.event_date).toLocaleDateString("en-PH", {
@@ -202,14 +158,8 @@ export default function EventPage() {
               </p>
             )}
 
-            {/* HYPE */}
             <div className="event-hype-section">
-
-              
-
-              <p className="event-hype-count">
-                {hypeCount} hype
-              </p>
+              <p className="event-hype-count">{hypeCount} hype</p>
 
               <button
                 className={`event-hype-btn ${hasHyped ? "hyped" : ""}`}
@@ -218,27 +168,20 @@ export default function EventPage() {
               >
                 {hasHyped ? "Hyped" : "Add Hype"}
               </button>
-
             </div>
 
-            <p className="event-description">
-              {event.description}
-            </p>
+            <p className="event-description">{event.description}</p>
 
-            {/* TAGS */}
             <div className="event-tags">
               {parsedTags.map((t, i) => (
                 <span key={i}>#{t}</span>
               ))}
             </div>
-
           </div>
-
         </div>
       </section>
 
       <Footer />
-
     </main>
   );
 }
