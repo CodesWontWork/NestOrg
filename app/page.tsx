@@ -142,11 +142,6 @@ export default function Home() {
 
       <Header />
 
-      {/* =========================================================
-          PARALLAX HERO SECTION
-          - Background image follows mouse movement
-          - Welcome message overlay
-      ========================================================= */}
       <section className="parallax-image-container">
 
         <img
