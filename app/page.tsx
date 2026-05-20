@@ -1,65 +1,172 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import EventsGrid from "@/components/EventsGrid";
 
 export default function Home() {
+
+  const [eventCount, setEventCount] = useState(0);
+  const [orgCount, setOrgCount] = useState(0);
+  const [userCount, setUserCount] = useState(0);
+
+  useEffect(() => {
+    async function loadCounts() {
+      const [eventsRes, orgsRes, usersRes] = await Promise.all([
+        supabase.from("events").select("*", { count: "exact", head: true }).eq("approved", true),
+        supabase.from("organizations").select("*", { count: "exact", head: true }).eq("approved", true),
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
+      ]);
+
+      setEventCount(eventsRes.count || 0);
+      setOrgCount(orgsRes.count || 0);
+      setUserCount(usersRes.count || 0);
+    }
+
+    loadCounts();
+  }, []);
+
+  const [events, setEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadEvents() {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("approved", true)
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      setEvents(data || []);
+    }
+
+    loadEvents();
+  }, []);
+
+  // =========================
+  // IMAGE SAFETY
+  // =========================
+  function getValidImage(url: string | null | undefined) {
+    if (!url || typeof url !== "string") {
+      return "/images/temp-event-image.png";
+    }
+    if (!url.startsWith("http")) {
+      return "/images/temp-event-image.png";
+    }
+    return url;
+  }
+
+  // =========================
+  // PARALLAX
+  // =========================
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      const x = (e.clientX / window.innerWidth - 0.5) * 20;
+      const y = (e.clientY / window.innerHeight - 0.5) * 20;
+
+      if (imageRef.current) {
+        imageRef.current.style.transform =
+          `translate(${x}px, ${y}px) scale(1.05)`;
+      }
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main>
+
+      <Header />
+
+      {/* =========================================================
+          PARALLAX HERO SECTION
+          - Background image follows mouse movement
+          - Welcome message overlay
+      ========================================================= */}
+      <section className="parallax-image-container">
+
+        <img
+          ref={imageRef}
+          src="/images/parallax-image.jpg"
+          alt=""
+          className="parallax-image"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+
+        <div className="parallax-image-text">
+          <h2>Welcome to NestOrg</h2>
+          <p>Your central hub for organizations at Cavite State University</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+      </section>
+
+
+      {/* =========================================================
+          COUNTER SECTION
+          - Displays live counts from database (events/orgs/users)
+      ========================================================= */}
+      <section id="random-ahh-container">
+
+        {/* EVENTS COUNT */}
+        <div className="rac-boxes">
+          <img className="icon" src="/images/event_icon.svg" alt="" />
+          <div>
+            <h3>{eventCount}</h3>
+            <p>Events</p>
+          </div>
         </div>
-      </main>
-    </div>
+
+        {/* ORGANIZATIONS COUNT */}
+        <div className="rac-boxes">
+          <img className="icon" src="/images/organization-icon.svg" alt="" />
+          <div>
+            <h3>{orgCount}</h3>
+            <p>Organizations</p>
+          </div>
+        </div>
+
+        {/* USERS COUNT */}
+        <div className="rac-boxes">
+          <img className="icon" src="/images/profile-icon.svg" alt="" />
+          <div>
+            <h3>{userCount}</h3>
+            <p>Users</p>
+          </div>
+        </div>
+
+      </section>
+
+
+      {/* =========================
+          EVENTS SECTION
+      ========================= */}
+      <section id="home-events-section">
+
+        <div id="uec-heading">
+          <div>
+            <h3>Events</h3>
+            <p>Check out current events!</p>
+          </div>
+
+          <Link href="/events">View All Events</Link>
+        </div>
+
+        <EventsGrid events={events} />
+
+      </section>
+
+      <Footer />
+
+    </main>
   );
 }

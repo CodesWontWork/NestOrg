@@ -1,0 +1,25 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+export default function Layout() {
+
+  return (
+    <main>
+      
+      <Header />
+
+      {/* =========================================================
+          PAGE CONTENT GOES HERE
+      ========================================================= */}
+
+     <Footer />
+
+    </main>
+  );
+}
