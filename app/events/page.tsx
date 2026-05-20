@@ -51,33 +51,57 @@ export default function EventsPage() {
   const filteredEvents = events.filter((event) => {
 
     const titleMatch =
-      event.title?.toLowerCase().includes(search.toLowerCase());
+      event.title
+        ?.toLowerCase()
+        .includes(search.toLowerCase());
 
     const tagsMatch =
       Array.isArray(event.tags)
-        ? event.tags.join(" ").toLowerCase().includes(search.toLowerCase())
+        ? event.tags
+            .join(" ")
+            .toLowerCase()
+            .includes(search.toLowerCase())
         : (event.tags || "")
             .toLowerCase()
             .includes(search.toLowerCase());
 
     return titleMatch || tagsMatch;
   });
+
+  // =========================
+  // PROFILE
+  // =========================
   const [profile, setProfile] = useState<any>(null);
+
   useEffect(() => {
-  async function loadProfile() {
-    if (!user) return;
+    async function loadProfile() {
+      if (!user) return;
 
-    const { data } = await supabase
-      .from("profiles")
-      .select("avatar_url, username")
-      .eq("id", user.id)
-      .single();
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url, username")
+        .eq("id", user.id)
+        .single();
 
-    setProfile(data);
-  }
+      setProfile(data);
+    }
 
-  loadProfile();
-}, [user]);
+    loadProfile();
+  }, [user]);
+  
+  useEffect(() => {
+  supabase.auth.getSession().then(({ data }) => {
+    setSession(data.session);
+  });
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setSession(session);
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
 
   return (
     <main>
@@ -101,11 +125,20 @@ export default function EventsPage() {
 
       </section>
 
+      {/* ========================= EVENTS GRID ========================= */}
       <div id="Events-grid-box">
-        <EventsGrid events={events}/>
+
+        {loading && <p>Loading events...</p>}
+
+        {error && <p>{error}</p>}
+
+        {!loading && !error && (
+          <EventsGrid events={filteredEvents} />
+        )}
+
       </div>
 
-     <Footer />
+      <Footer />
 
     </main>
   );

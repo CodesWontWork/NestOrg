@@ -219,7 +219,6 @@ export default function EventPage() {
             {/* DATE */}
             {event.event_date && (
               <p className="event-date">
-                📅{" "}
                 {new Date(event.event_date).toLocaleDateString("en-PH", {
                   year: "numeric",
                   month: "long",
