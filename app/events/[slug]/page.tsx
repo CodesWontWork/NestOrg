@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -12,7 +11,9 @@ export default function EventPage() {
   const params = useParams();
   const router = useRouter();
 
-  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+  const slug = Array.isArray(params.slug)
+    ? params.slug[0]
+    : params.slug;
 
   // =========================
   // AUTH
@@ -34,25 +35,17 @@ export default function EventPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function logout() {
-    await supabase.auth.signOut();
-    setSession(null);
-  }
-
   // =========================
   // EVENT STATE
   // =========================
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [eventDate, setEventDate] = useState("");
-  const [tags, setTags] = useState("");
-
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  // =========================
+  // HYPE STATE
+  // =========================
+  const [hypeCount, setHypeCount] = useState(0);
+  const [hasHyped, setHasHyped] = useState(false);
 
   // =========================
   // FETCH EVENT
@@ -77,105 +70,85 @@ export default function EventPage() {
           .single();
 
         data = fallback.data;
-        error = fallback.error;
       }
 
-      if (error || !data) {
-        setMessage("Event not found.");
+      if (!data) {
         setLoading(false);
         return;
       }
 
       setEvent(data);
 
-      setTitle(data.title || "");
-      setDescription(data.description || "");
-      setImageUrl(data.image_url || "");
-      setEventDate(data.event_date || "");
+      // =========================
+      // FETCH HYPE COUNT
+      // =========================
+      const { count } = await supabase
+        .from("event_hype")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", data.id);
 
-      setTags(
-        Array.isArray(data.tags)
-          ? data.tags.join(", ")
-          : JSON.parse(data.tags || "[]").join(", ")
-      );
+      setHypeCount(count || 0);
+
+      // =========================
+      // CHECK USER HYPE
+      // =========================
+      if (user) {
+        const { data: hypeData } = await supabase
+          .from("event_hype")
+          .select("*")
+          .eq("event_id", data.id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        setHasHyped(!!hypeData);
+      }
 
       setLoading(false);
     }
 
     fetchEvent();
-  }, [slug]);
+  }, [slug, user]);
 
   // =========================
-  // OWNER CHECK
+  // TOGGLE HYPE
   // =========================
-  const isOwner = !!user && !!event && user.id === event.created_by;
+  async function toggleHype() {
+    if (!user || !event) return;
 
-  // =========================
-  // UPDATE EVENT
-  // =========================
-  async function handleUpdateEvent(e: React.FormEvent) {
-    e.preventDefault();
-    if (!isOwner) return;
+    if (hasHyped) {
 
-    const tagArray = tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
+      // REMOVE HYPE
+      await supabase
+        .from("event_hype")
+        .delete()
+        .eq("event_id", event.id)
+        .eq("user_id", user.id);
 
-    const generatedSlug = title
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-");
+      setHasHyped(false);
+      setHypeCount((prev) => prev - 1);
 
-    await supabase
-      .from("events")
-      .update({
-        title,
-        description,
-        image_url: imageUrl,
-        event_date: eventDate,
-        tags: tagArray,
-        slug: generatedSlug,
-      })
-      .eq("id", event.id);
+    } else {
 
-    setEvent({
-      ...event,
-      title,
-      description,
-      image_url: imageUrl,
-      event_date: eventDate,
-      tags: tagArray,
-      slug: generatedSlug,
-    });
+      // ADD HYPE
+      const { error } = await supabase
+        .from("event_hype")
+        .insert({
+          event_id: event.id,
+          user_id: user.id,
+        });
 
-    setMessage("Event updated successfully!");
-    setIsEditOpen(false);
-
-    if (generatedSlug !== slug) {
-      router.push(`/events/${generatedSlug}`);
+      if (!error) {
+        setHasHyped(true);
+        setHypeCount((prev) => prev + 1);
+      }
     }
-  }
-
-  // =========================
-  // DELETE
-  // =========================
-  async function handleDeleteEvent() {
-    if (!isOwner) return;
-
-    const confirmed = confirm("Delete this event permanently?");
-    if (!confirmed) return;
-
-    await supabase.from("events").delete().eq("id", event.id);
-
-    router.push("/events");
   }
 
   // =========================
   // TAGS SAFE PARSE
   // =========================
   let parsedTags: string[] = [];
+
   try {
     parsedTags = Array.isArray(event?.tags)
       ? event.tags
@@ -188,8 +161,10 @@ export default function EventPage() {
   // IMAGE SAFE
   // =========================
   function getImage(url: string) {
-    if (!url || !url.startsWith("http"))
+    if (!url || !url.startsWith("http")) {
       return "/images/temp-event-image.png";
+    }
+
     return url;
   }
 
@@ -198,23 +173,23 @@ export default function EventPage() {
 
   return (
     <main>
+
       <Header />
 
-      {/* =========================
-          EVENT HERO SECTION
-      ========================= */}
       <section className="event-page-section">
         <div className="event-page-container">
 
           <img
-            src={getImage(imageUrl || event.image_url)}
+            src={getImage(event.image_url)}
             className="event-page-image"
             alt={event.title}
           />
 
           <div className="event-content">
 
-            <h1 className="event-title">{event.title}</h1>
+            <h1 className="event-title">
+              {event.title}
+            </h1>
 
             {/* DATE */}
             {event.event_date && (
@@ -227,6 +202,25 @@ export default function EventPage() {
               </p>
             )}
 
+            {/* HYPE */}
+            <div className="event-hype-section">
+
+              
+
+              <p className="event-hype-count">
+                {hypeCount} hype
+              </p>
+
+              <button
+                className={`event-hype-btn ${hasHyped ? "hyped" : ""}`}
+                onClick={toggleHype}
+                disabled={!user}
+              >
+                {hasHyped ? "Hyped" : "Add Hype"}
+              </button>
+
+            </div>
+
             <p className="event-description">
               {event.description}
             </p>
@@ -238,87 +232,13 @@ export default function EventPage() {
               ))}
             </div>
 
-            {/* ACTIONS */}
-            {isOwner && (
-              <div className="event-actions">
-                <button
-                  className="event-save-btn"
-                  onClick={() => setIsEditOpen(true)}
-                >
-                  Edit Event
-                </button>
-
-                <button
-                  className="event-delete-btn"
-                  onClick={handleDeleteEvent}
-                >
-                  Delete Event
-                </button>
-              </div>
-            )}
-
-            {message && <p>{message}</p>}
           </div>
+
         </div>
       </section>
 
-      {/* =========================
-          EDIT MODAL
-      ========================= */}
-      {isEditOpen && (
-        <div
-          className="modal-overlay"
-          onClick={() => setIsEditOpen(false)}
-        >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2>Edit Event</h2>
-
-            <form onSubmit={handleUpdateEvent}>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Title"
-              />
-
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Description"
-              />
-
-              <input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="Image URL"
-              />
-
-              <input
-                type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-              />
-
-              <input
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="Tags"
-              />
-
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button type="submit">Save</button>
-                <button type="button" onClick={() => setIsEditOpen(false)}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <Footer />
+
     </main>
   );
 }

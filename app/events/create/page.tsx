@@ -21,6 +21,11 @@ export default function EventCreatePage() {
   }
 
   // =========================
+  // TODAY DATE (FOR VALIDATION)
+  // =========================
+  const today = new Date().toISOString().split("T")[0];
+
+  // =========================
   // AUTH
   // =========================
   const [session, setSession] = useState<Session | null>(null);
@@ -70,7 +75,7 @@ export default function EventCreatePage() {
         return;
       }
 
-      // ✅ FIX: TAKE FIRST ORG
+      // TAKE FIRST ORG
       if (data && data.length > 0) {
         setUserOrg(data[0]);
       } else {
@@ -113,6 +118,20 @@ export default function EventCreatePage() {
       return;
     }
 
+    // =========================
+    // DATE VALIDATION
+    // =========================
+    if (!eventDate) {
+      setMessage("Please select an event date.");
+      return;
+    }
+
+    // compare selected date with today
+    if (eventDate < today) {
+      setMessage("You cannot create an event with a past date.");
+      return;
+    }
+
     setLoading(true);
     setMessage("");
 
@@ -140,7 +159,6 @@ export default function EventCreatePage() {
 
         slug,
 
-        // ✅ FIXED ORG DATA
         org_id: userOrg.id,
         org_name: userOrg.name,
 
@@ -153,6 +171,7 @@ export default function EventCreatePage() {
     if (error) {
       console.error(error);
       setMessage(error.message);
+
     } else {
 
       setMessage("Event submitted for approval!");
@@ -236,7 +255,9 @@ export default function EventCreatePage() {
           <input
             type="date"
             value={eventDate}
+            min={today} // ✅ prevents selecting past dates
             onChange={(e) => setEventDate(e.target.value)}
+            required
           />
 
           {/* TAGS */}

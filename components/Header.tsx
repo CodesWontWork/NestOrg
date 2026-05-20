@@ -13,9 +13,6 @@ export default function Header() {
 
   const user = session?.user ?? null;
 
-  // =========================
-  // AUTH LISTENER
-  // =========================
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -30,9 +27,6 @@ export default function Header() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // =========================
-  // LOAD PROFILE
-  // =========================
   useEffect(() => {
     async function loadProfile() {
       if (!user) return;
@@ -50,9 +44,6 @@ export default function Header() {
     loadProfile();
   }, [user]);
 
-  // =========================
-  // DARK MODE
-  // =========================
   useEffect(() => {
     const saved = localStorage.getItem("theme");
 
@@ -76,9 +67,7 @@ export default function Header() {
     }
   }
 
-  // =========================
-  // LOGOUT
-  // =========================
+
   async function logout() {
     await supabase.auth.signOut();
     setSession(null);
@@ -88,7 +77,6 @@ export default function Header() {
     <header>
       <div className="header-main-box">
 
-        {/* LEFT */}
         <div className="header-left-box">
           <img src="/images/hornet-icon.png" alt="logo" />
 
@@ -98,7 +86,6 @@ export default function Header() {
           </div>
         </div>
 
-        {/* RIGHT */}
         <div className="header-right-box">
           
           <Link className="header-link" href="/">Home</Link>
@@ -111,7 +98,6 @@ export default function Header() {
             </Link>
           )}
 
-          {/* DARK MODE */}
           <img
             src={darkMode ? "/images/moon-icon.png" : "/images/sun-icon.png"}
             className="darkmode-btn"
@@ -119,7 +105,6 @@ export default function Header() {
             alt="theme"
           />
 
-          {/* AUTH */}
           <div className="auth-section">
 
             {!user && (

@@ -8,12 +8,62 @@ import Footer from "@/components/Footer";
 import EventsGrid from "@/components/EventsGrid";
 
 export default function Home() {
-
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [eventCount, setEventCount] = useState(0);
   const [orgCount, setOrgCount] = useState(0);
   const [userCount, setUserCount] = useState(0);
 
   useEffect(() => {
+    async function fetchEvents() {
+
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("approved", true)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      // =========================================
+      // ✅ ADD HYPE COUNTS
+      // =========================================
+      const eventsWithHype = await Promise.all(
+
+        (data || []).map(async (event) => {
+
+          // =========================================
+          // ✅ HYPE COUNT FETCH
+          // =========================================
+          const { count } = await supabase
+            .from("event_hype")
+            .select("*", {
+              count: "exact",
+              head: true,
+            })
+            .eq("event_id", event.id);
+
+          return {
+            ...event,
+            hype_count: count || 0,
+          };
+        })
+      );
+
+      // ✅ SET EVENTS WITH HYPE
+      setEvents(eventsWithHype);
+
+      setLoading(false);
+    }
+
+    fetchEvents();
+
     async function loadCounts() {
       const [eventsRes, orgsRes, usersRes] = await Promise.all([
         supabase.from("events").select("*", { count: "exact", head: true }).eq("approved", true),
@@ -47,8 +97,11 @@ export default function Home() {
 
       setEvents(data || []);
     }
+    
 
     loadEvents();
+
+    
   }, []);
 
   // =========================

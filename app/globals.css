@@ -26,13 +26,13 @@
     --input-border: #00122a;
     --green1: #264224;
     --green2: #507914;
-}
+} 
 
-.darkmode .icon, .darkmode .profile-pic{
+.darkmode .icon{
     filter: invert(0%);
 }
 
-.icon, .profile-pic{
+.icon{
     filter: invert(100%);
 }
 
@@ -338,6 +338,15 @@ header {
     font-size: 0.95rem;
 
     white-space: normal;
+}
+
+.event-card-hype {
+  display: flex;
+  justify-content: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--green2);
 }
 
 
@@ -1142,57 +1151,106 @@ header {
 }
 
 .events-search-container {
-  margin: 2% 15%;
-  padding: 1.5% 1%;
-
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-
   background-color: var(--bg-color1);
-
-  border-radius: 14px;
+  border-radius: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  margin: 20px 15% 20px 15%;
 }
 
 .events-search-input {
-  font-size: 1rem;
+    flex: 1;
+    min-width: 260px;
+    max-width: 500px;
 
-  padding: 12px;
+    padding: 14px 18px;
 
-  width: 100%;
-  max-width: 500px;
+    border: 1px solid var(--bg-color3);
+    border-radius: 14px;
 
-  border-radius: 12px;
+    background: var(--bg-color2);
+    color: var(--text-black);
 
-  border: 1px solid var(--input-border);
+    font-size: 15px;
+    outline: none;
 
-  background-color: var(--bg-color2);
-  color: var(--text-black);
+    transition: 0.2s ease;
+}
+
+.events-search-input:focus {
+    border-color: var(--green2);
+    box-shadow: 0 0 0 3px rgba(39, 120, 32, 0.15);
+}
+
+.events-sort-select {
+  min-width: 15%;
+    padding: 14px 16px;
+
+    border-radius: 14px;
+    border: 1px solid var(--bg-color3);
+
+    background: var(--bg-color2);
+    color: var(--text-black);
+
+    font-size: 14px;
+    font-weight: 500;
+
+    cursor: pointer;
+    outline: none;
+
+    transition: 0.2s ease;
+
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    background-image: none;
+}
+
+.events-sort-select:hover {
+    border-color: var(--green2);
+}
+
+.events-sort-select:focus {
+    border-color: var(--green2);
+    box-shadow: 0 0 0 3px rgba(39, 120, 32, 0.15);
 }
 
 .events-add-btn {
-  padding: 14px 18px;
+    padding: 14px 20px;
 
-  border-radius: 14px;
+    background: linear-gradient(
+        135deg,
+        var(--green1),
+        var(--green2)
+    );
 
-  background: var(--green1);
-  color: white;
+    color: white;
+    text-decoration: none;
 
-  text-decoration: none;
-  font-weight: bold;
+    border-radius: 14px;
 
-  white-space: nowrap;
+    font-weight: 600;
+    font-size: 14px;
 
-  transition: 0.25s ease;
+    transition: 0.2s ease;
 
-  box-shadow: 0 0px 5px rgba(77, 255, 148, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    white-space: nowrap;
 }
 
 .events-add-btn:hover {
-  transform: translateY(-2px);
-
-  box-shadow: 0 0px 10px rgba(77, 255, 148, 0.45);
+    transform: translateY(-2px);
+    opacity: 0.95;
 }
+
 
 
 
@@ -1256,9 +1314,9 @@ header {
 
 
 
-/* =========================
-   EVENT PAGE LAYOUT
-========================= */
+
+
+
 .event-page-section {
   display: flex;
   justify-content: center;
@@ -1275,9 +1333,6 @@ header {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
-/* =========================
-   EVENT IMAGE
-========================= */
 .event-page-image {
   width: 100%;
   height: 320px;
@@ -1285,9 +1340,6 @@ header {
   display: block;
 }
 
-/* =========================
-   CONTENT AREA
-========================= */
 .event-content {
   padding: 25px;
 }
@@ -1299,18 +1351,12 @@ header {
   color: var(--text-black);
 }
 
-/* =========================
-   EVENT DATE
-========================= */
 .event-date {
   font-size: 14px;
   color: white;
   margin-bottom: 15px;
 }
 
-/* =========================
-   DESCRIPTION
-========================= */
 .event-description {
   font-size: 16px;
   line-height: 1.6;
@@ -1318,9 +1364,6 @@ header {
   margin-bottom: 20px;
 }
 
-/* =========================
-   TAGS
-========================= */
 .event-tags {
   display: flex;
   justify-content: center;
@@ -1337,9 +1380,6 @@ header {
   font-size: 13px;
 }
 
-/* =========================
-   ACTION BUTTONS
-========================= */
 .event-actions {
   justify-content: center;
   display: flex;
@@ -1361,16 +1401,10 @@ header {
   background: #dc2626;
 }
 
-/* =========================
-   MESSAGE
-========================= */
 .event-content p {
   margin-top: 10px;
 }
 
-/* =========================
-   MODAL BACKDROP
-========================= */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1381,9 +1415,6 @@ header {
   z-index: 1000;
 }
 
-/* =========================
-   MODAL BOX
-========================= */
 .modal-content {
   background: white;
   width: 90%;
@@ -1397,9 +1428,6 @@ header {
   margin-bottom: 15px;
 }
 
-/* =========================
-   INPUTS
-========================= */
 .modal-content input,
 .modal-content textarea {
   width: 100%;
@@ -1410,9 +1438,6 @@ header {
   font-size: 14px;
 }
 
-/* =========================
-   MODAL BUTTONS
-========================= */
 .modal-content button {
   padding: 10px 14px;
   border-radius: 8px;
@@ -1432,11 +1457,6 @@ header {
 .modal-content button[type="button"] {
   background: #e5e7eb;
 }
-
-
-/* =========================================================
-   EVENT DISPLAY TEXT
-========================================================= */
 
 .event-page-tags {
   display: flex;
@@ -1462,10 +1482,6 @@ header {
   text-align: center;
   font-weight: bold;
 }
-
-/* =========================================================
-   BUTTONS
-========================================================= */
 
 .event-save-btn {
   background: var(--green1);
@@ -1495,7 +1511,6 @@ header {
   background: #ff0000;
 }
 
-/* EDIT BUTTON (NEW) */
 .event-edit-btn {
   background: var(--bg-color3);
   color: var(--text-black);
@@ -1510,10 +1525,6 @@ header {
   background: var(--bg-color2);
 }
 
-/* =========================================================
-   FORM (DISPLAY MODE - NOT EDIT MODAL)
-========================================================= */
-
 .event-page-form {
   display: flex;
   flex-direction: column;
@@ -1525,9 +1536,6 @@ header {
   color: var(--text-black);
 }
 
-/* =========================================================
-   MODAL OVERLAY
-========================================================= */
 
 .modal-overlay {
   position: fixed;
@@ -1544,9 +1552,6 @@ header {
   padding: 20px;
 }
 
-/* =========================================================
-   MODAL BOX
-========================================================= */
 
 .modal-content {
   background: var(--bg-color1);
@@ -1569,9 +1574,6 @@ header {
   gap: 15px;
 }
 
-/* =========================================================
-   MODAL FORM INPUTS
-========================================================= */
 
 .modal-content input,
 .modal-content textarea {
@@ -1595,9 +1597,6 @@ header {
   resize: vertical;
 }
 
-/* =========================================================
-   MODAL BUTTONS
-========================================================= */
 
 .modal-content button {
   padding: 12px;
@@ -1628,6 +1627,41 @@ header {
 .modal-content button[type="button"]:hover {
   background: var(--bg-color2);
 }
+
+.event-hype-section {
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.event-hype-btn {
+  background: var(--green2);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.event-hype-btn:hover {
+  transform: scale(1.03);
+}
+
+.event-hype-btn.hyped {
+  background: #ff6b00;
+}
+
+.event-hype-count {
+  color: var(--text-black-light);
+  font-weight: 600;
+}
+
 
 
 /* =========================================================
@@ -1761,9 +1795,6 @@ header {
     border: 2px solid var(--bg-color3);
 }
 
-/* =========================
-   EDIT MODAL
-========================= */
 .edit-modal-overlay {
     position: fixed;
 
@@ -1834,11 +1865,6 @@ header {
     cursor: pointer;
 }
 
-
-/* =========================================================
-   HERO
-========================================================= */
-
 .about-hero {
     width: 100%;
     background: linear-gradient(to right, #173f16, #1f4f1d);
@@ -1861,20 +1887,12 @@ header {
     color: white;
 }
 
-/* =========================================================
-   MAIN CONTAINER
-========================================================= */
-
 .about-container {
     width: 100%;
     max-width: 1200px;
     margin: auto;
     padding: 70px 20px;
 }
-
-/* =========================================================
-   CARD
-========================================================= */
 
 .about-card {
     background-color: var(--bg-color1);
@@ -1897,9 +1915,6 @@ header {
     color: var(--text-black-light);
 }
 
-/* =========================================================
-   OFFER SECTION
-========================================================= */
 
 .offer-section {
     margin-top: 80px;
@@ -1950,10 +1965,6 @@ header {
     line-height: 1.7;
     color: var(--text-black-light);
 }
-
-/* =========================================================
-   CTA
-========================================================= */
 
 .about-cta {
     margin-top: 80px;
@@ -2014,10 +2025,6 @@ header {
     color: var(--text-black);
 }
 
-/* =========================
-   SECTION HEADERS
-========================= */
-
 .admin-section-title {
     font-size: 22px;
     font-weight: 600;
@@ -2025,19 +2032,12 @@ header {
     color: var(--text-black-light);
 }
 
-/* =========================
-   GRID LAYOUT
-========================= */
-
 .admin-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 15px;
 }
 
-/* =========================
-   CARD STYLE
-========================= */
 
 .admin-card {
     background: var(--bg-color1);
@@ -2052,11 +2052,6 @@ header {
     transform: translateY(-2px);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
 }
-
-/* =========================
-   ITEM HEADER
-========================= */
-
 .admin-card-title {
     font-weight: 600;
     font-size: 16px;
@@ -2072,9 +2067,6 @@ header {
     margin-right: 6px;
 }
 
-/* =========================
-   BUTTONS
-========================= */
 
 .admin-actions {
     display: flex;
@@ -2091,7 +2083,7 @@ header {
     transition: 0.2s ease;
 }
 
-/* approve */
+
 .admin-btn-approve {
     background: var(--green2);
     color: var(--text-white);
@@ -2101,7 +2093,6 @@ header {
     background: var(--green1);
 }
 
-/* delete */
 .admin-btn-delete {
     background: transparent;
     border: 1px solid #ff4d4d;
@@ -2113,7 +2104,7 @@ header {
     color: white;
 }
 
-/* unapprove */
+
 .admin-btn-unapprove {
     background: var(--bg-color3);
     color: var(--text-black);
@@ -2147,3 +2138,10 @@ header {
     color: var(--green1);
     text-decoration: underline;
 }
+
+
+
+/* ===================================
+          MOBILE BULLSHIT
+=================================== */
+
