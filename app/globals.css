@@ -163,6 +163,7 @@ header {
 }
 
 .profile-pic {
+  background-color: var(--green1);
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -237,14 +238,23 @@ header {
   background-color: var(--bg-color1);
 }
 
+#uec-events {
+  display: flex;
+  gap: 3.5%;
+  justify-content: left;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
 .home-event-card-link {
+  width: 31%;
   text-decoration: none;
   color: inherit;
   display: flex;
 }
 
 .home-event-card {
-  width: 22vw;
+  width: 100%;
   min-height: 420px;
 
   background-color: var(--bg-color1);
@@ -478,14 +488,6 @@ header {
   padding: 10px 20px;
   border-radius: 5px;
   transition: background-color 0.2s ease;
-}
-
-#uec-events {
-  display: flex;
-  gap: 2.5%;
-  justify-content: left;
-  align-items: stretch;
-  flex-wrap: wrap;
 }
 
 #about-container {
@@ -2138,8 +2140,10 @@ p {
   }
 
   .header-right-box {
-    gap: 6px;
+    gap: 8px;
+    margin-left: 10px;
     flex-wrap: wrap;
+    justify-content: center;
   }
 
   .header-link {
@@ -2199,12 +2203,13 @@ p {
   ========================= */
 
   .home-event-card {
-    width: 85vw;
+    width: 100%;
     min-height: unset;
     margin: 0 auto 6% auto;
   }
 
   .home-event-card-link {
+    width: 100%;
     justify-content: center;
   }
 
@@ -2671,3 +2676,937 @@ p {
     text-align: center;
   }
 } /* end @media (max-width: 768px) */
+
+/* ==========================================================
+   TABLET STYLES
+   @media (min-width: 769px) and (max-width: 1024px)
+========================================================== */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* =========================
+     HEADER
+  ========================= */
+
+  header {
+    padding: 0.8% 6%;
+  }
+
+  .header-left-box h1 {
+    font-size: 16px;
+  }
+
+  .header-left-box p {
+    font-size: 11px;
+  }
+
+  .header-left-box img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .header-right-box {
+    gap: 6px;
+  }
+
+  .header-link {
+    font-size: 14px;
+    padding: 7px 9px;
+  }
+
+  .login-link {
+    font-size: 14px;
+    padding: 7px 9px;
+  }
+
+  .logout-btn {
+    font-size: 14px;
+    padding: 7px 9px;
+  }
+
+  /* =========================
+     FOOTER
+  ========================= */
+
+  .footer-top {
+    padding: 20px 6%;
+  }
+
+  .footer-contact p {
+    width: 40%;
+    font-size: 0.85rem;
+  }
+
+  .footer hr {
+    margin: 0 6%;
+  }
+
+  .footer-bottom {
+    padding: 16px 6%;
+  }
+
+  /* =========================
+     HOME PAGE
+  ========================= */
+
+  .parallax-image-container {
+    height: 400px;
+  }
+
+  .parallax-image-text h2 {
+    font-size: 2.8rem;
+  }
+
+  .parallax-image-text p {
+    font-size: 1.3rem;
+  }
+
+  #random-ahh-container {
+    padding: 3% 6%;
+    gap: 16px;
+  }
+
+  #random-ahh-container .rac-boxes {
+    font-size: 1.1rem;
+    padding: 1.5vw;
+  }
+
+  #random-ahh-container .rac-boxes img {
+    height: 80px;
+  }
+
+  .rac-boxes div h3 {
+    font-size: 2.5rem;
+  }
+
+  #home-events-section {
+    padding: 0 6% 4%;
+  }
+
+  #uec-heading {
+    font-size: 1.7rem;
+    padding: 40px 0 16px;
+  }
+
+  #uec-events {
+    gap: 2%;
+  }
+
+  .home-event-card {
+    width: 100%;
+    min-height: 380px;
+  }
+
+  .home-event-card-link {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #about-container {
+    padding: 4% 6%;
+  }
+
+  #about-container h3 {
+    font-size: 1.7rem;
+  }
+
+  #about-container p {
+    font-size: 1.15rem;
+  }
+
+  /* =========================
+     AUTH PAGE
+  ========================= */
+
+  .auth-form {
+    width: 420px;
+    padding: 36px;
+  }
+
+  /* =========================
+     ORGANIZATIONS PAGE
+  ========================= */
+
+  .search-container {
+    margin: 2% 6%;
+  }
+
+  .org-grid {
+    margin: 0 6% 4% 6%;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .org-card img {
+    height: 220px;
+  }
+
+  /* =========================
+     CREATE ORG PAGE
+  ========================= */
+
+  .create-org-page {
+    margin: 2% 10%;
+  }
+
+  .create-org-page input,
+  .create-org-page textarea {
+    margin: 5px 10%;
+  }
+
+  /* =========================
+     ORGANIZATION DYNAMIC PAGE
+  ========================= */
+
+  .org-banner-section {
+    height: 300px;
+  }
+
+  .org-main-section {
+    margin: 0 6%;
+    padding: 30px;
+  }
+
+  .org-page-logo {
+    width: 160px;
+    height: 160px;
+    margin-top: -110px;
+  }
+
+  .org-page-title {
+    font-size: 2rem;
+  }
+
+  .org-events-section {
+    margin: 5% 6%;
+  }
+
+  /* =========================
+     EVENTS PAGE
+  ========================= */
+
+  #Events-grid-box {
+    margin: 0 6%;
+  }
+
+  .events-search-container {
+    margin: 20px 6%;
+  }
+
+  /* =========================
+     EVENT CREATION PAGE
+  ========================= */
+
+  .event-create-section {
+    margin: 2% 10%;
+  }
+
+  .event-create-form input,
+  .event-create-form textarea,
+  .event-create-form select {
+    margin: 5px 10%;
+  }
+
+  /* =========================
+     EVENT DETAIL PAGE
+  ========================= */
+
+  .event-page-image {
+    height: 260px;
+  }
+
+  /* =========================
+     PROFILE PAGE
+  ========================= */
+
+  .profile-card {
+    width: 92%;
+  }
+
+  .profile-stats {
+    gap: 18px;
+    padding: 20px 6%;
+  }
+
+  .profile-stat-box {
+    width: 180px;
+  }
+
+  .profile-section {
+    padding: 32px 6%;
+  }
+
+  /* =========================
+     ABOUT PAGE
+  ========================= */
+
+  .about-title {
+    font-size: 52px;
+  }
+
+  .about-subtitle {
+    font-size: 18px;
+  }
+
+  .about-card h2 {
+    font-size: 34px;
+  }
+
+  .about-card p {
+    font-size: 18px;
+  }
+
+  .offer-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px;
+  }
+
+  .offer-title {
+    font-size: 38px;
+    margin-bottom: 36px;
+  }
+
+  .offer-card h3 {
+    font-size: 24px;
+  }
+
+  .offer-card p {
+    font-size: 17px;
+  }
+
+  .about-cta h2 {
+    font-size: 38px;
+  }
+
+  .about-cta p {
+    font-size: 18px;
+  }
+
+  /* =========================
+     ADMIN PAGE
+  ========================= */
+
+  .admin-page {
+    margin: auto 6%;
+    padding: 30px 0;
+  }
+
+  .admin-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+} /* end @media tablet */
+
+/* ==========================================================
+   SMALL PHONE STYLES
+   @media (max-width: 480px)
+========================================================== */
+
+@media (max-width: 480px) {
+  /* =========================
+     HEADER
+  ========================= */
+
+  header {
+    padding: 10px 4%;
+  }
+
+  .header-main-box {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+  }
+
+  .header-left-box h1 {
+    font-size: 13px;
+  }
+
+  .header-left-box p {
+    font-size: 10px;
+  }
+
+  .header-left-box img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .header-right-box {
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .header-link,
+  .login-link,
+  .logout-btn,
+  .admin-link {
+    font-size: 11px;
+    padding: 5px 7px;
+    border-radius: 8px;
+  }
+
+  .darkmode-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* =========================
+     FOOTER
+  ========================= */
+
+  .footer-top {
+    padding: 16px 4%;
+  }
+
+  .footer-contact p {
+    width: 100%;
+    font-size: 0.8rem;
+  }
+
+  .footer hr {
+    margin: 0 4%;
+  }
+
+  .footer-bottom {
+    padding: 12px 4%;
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  /* =========================
+     EVENT CARDS (HOME)
+  ========================= */
+
+  .home-event-card {
+    width: 100%;
+    min-height: unset;
+    margin: 0 auto 6% auto;
+  }
+
+  .home-event-card-link {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .event-image {
+    height: 150px;
+  }
+
+  .event-title {
+    font-size: 1rem;
+    padding: 8px 12px 0 12px;
+  }
+
+  .event-description {
+    font-size: 0.75rem;
+    padding: 0 12px;
+  }
+
+  /* =========================
+     HOME PAGE
+  ========================= */
+
+  .parallax-image-container {
+    height: 260px;
+  }
+
+  .parallax-image-text h2 {
+    font-size: 1.7rem;
+    text-align: center;
+  }
+
+  .parallax-image-text p {
+    font-size: 0.95rem;
+    text-align: center;
+  }
+
+  #random-ahh-container {
+    flex-direction: column;
+    padding: 5% 4%;
+    gap: 12px;
+  }
+
+  #random-ahh-container .rac-boxes {
+    width: 100%;
+    font-size: 0.9rem;
+    padding: 14px;
+    gap: 10px;
+  }
+
+  #random-ahh-container .rac-boxes img {
+    height: 55px;
+  }
+
+  .rac-boxes div {
+    width: 100%;
+    gap: 12px;
+    margin-left: 0;
+  }
+
+  .rac-boxes div h3 {
+    font-size: 1.6rem;
+  }
+
+  #home-events-section {
+    padding: 0 4% 6%;
+  }
+
+  #uec-heading {
+    font-size: 1.2rem;
+    padding: 22px 0 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  #uec-heading p {
+    font-size: 0.82rem;
+  }
+
+  #uec-heading a {
+    font-size: 0.82rem;
+    padding: 7px 12px;
+  }
+
+  #uec-events {
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  #about-container {
+    padding: 8% 4%;
+  }
+
+  #about-container h3 {
+    font-size: 1.25rem;
+    text-align: center;
+  }
+
+  #about-container p {
+    font-size: 0.9rem;
+  }
+
+  /* =========================
+     AUTH PAGE
+  ========================= */
+
+  .auth-form {
+    padding: 20px 14px;
+    width: 96%;
+    border-radius: 8px;
+  }
+
+  .auth-form h1 {
+    font-size: 1.3rem;
+  }
+
+  .auth-message-box {
+    padding: 18px 14px;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  /* =========================
+     ORGANIZATIONS PAGE
+  ========================= */
+
+  .search-container {
+    margin: 4% 4%;
+    padding: 3% 3%;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .search-input {
+    max-width: 100%;
+    font-size: 0.9rem;
+  }
+
+  .add-org-btn {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .org-grid {
+    margin: 0 4% 6% 4%;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .org-card img {
+    height: 170px;
+  }
+
+  .org-card h3 {
+    font-size: 1rem;
+  }
+
+  /* =========================
+     CREATE ORG PAGE
+  ========================= */
+
+  .create-org-page {
+    margin: 4% 4%;
+    padding: 4% 4%;
+  }
+
+  .create-org-page input,
+  .create-org-page textarea {
+    margin: 5px 0;
+    width: 100%;
+  }
+
+  /* =========================
+     ORGANIZATION DYNAMIC PAGE
+  ========================= */
+
+  .org-banner-section {
+    height: 160px;
+  }
+
+  .org-main-section {
+    margin: 0 3%;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .org-page-logo {
+    width: 90px;
+    height: 90px;
+    margin-top: -55px;
+  }
+
+  .org-page-title {
+    font-size: 1.3rem;
+    margin-top: 8px;
+  }
+
+  .org-page-description {
+    font-size: 0.85rem;
+  }
+
+  .org-events-section {
+    margin: 6% 4%;
+    gap: 16px;
+  }
+
+  .org-events-heading h2 {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+  }
+
+  .org-events-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .org-events-header h3 {
+    font-size: 16px;
+  }
+
+  /* =========================
+     EVENTS PAGE
+  ========================= */
+
+  #Events-grid-box {
+    margin: 0 4%;
+  }
+
+  .events-search-container {
+    margin: 10px 4%;
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .events-search-input {
+    min-width: unset;
+    width: 100%;
+    font-size: 14px;
+    padding: 11px 14px;
+  }
+
+  .events-sort-select {
+    width: 100%;
+    min-width: unset;
+    padding: 11px 12px;
+    font-size: 13px;
+  }
+
+  .events-add-btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 13px;
+    padding: 11px 16px;
+  }
+
+  /* =========================
+     EVENT CREATION PAGE
+  ========================= */
+
+  .event-create-section {
+    margin: 4% 4%;
+    padding: 4% 4%;
+  }
+
+  .event-create-form input,
+  .event-create-form textarea,
+  .event-create-form select {
+    margin: 4px 0;
+    width: 100%;
+    font-size: 0.9rem;
+  }
+
+  .event-create-form button {
+    width: 100%;
+    padding: 13px;
+  }
+
+  /* =========================
+     EVENT DETAIL PAGE
+  ========================= */
+
+  .event-page-section {
+    padding: 14px 6px;
+  }
+
+  .event-page-image {
+    height: 160px;
+  }
+
+  .event-content {
+    padding: 12px;
+  }
+
+  .event-title {
+    font-size: 18px;
+  }
+
+  .event-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .event-save-btn,
+  .event-delete-btn,
+  .event-edit-btn {
+    width: 100%;
+    padding: 11px;
+    font-size: 0.9rem;
+  }
+
+  /* =========================
+     MODAL
+  ========================= */
+
+  .modal-overlay {
+    padding: 8px;
+  }
+
+  .modal-content {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .edit-modal {
+    padding: 16px;
+    width: 96%;
+  }
+
+  .edit-modal-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .edit-modal-buttons button {
+    width: 100%;
+    padding: 11px;
+  }
+
+  /* =========================
+     PROFILE PAGE
+  ========================= */
+
+  .profile-banner {
+    height: 140px;
+  }
+
+  .profile-card {
+    width: 96%;
+    margin: -45px auto 0 auto;
+    padding: 14px 12px;
+    border-radius: 14px;
+  }
+
+  .profile-main-pic {
+    width: 80px;
+    height: 80px;
+    margin-top: -55px;
+  }
+
+  .profile-card h1 {
+    font-size: 1.25rem;
+    margin-top: 10px;
+  }
+
+  .profile-bio {
+    font-size: 0.88rem;
+  }
+
+  .profile-stats {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 4%;
+  }
+
+  .profile-stat-box {
+    width: 100%;
+    padding: 18px;
+  }
+
+  .profile-section {
+    padding: 18px 4%;
+  }
+
+  .profile-grid {
+    gap: 7px;
+  }
+
+  .profile-chip {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .edit-profile-btn {
+    width: 100%;
+    padding: 11px;
+    font-size: 0.9rem;
+  }
+
+  /* =========================
+     ABOUT PAGE
+  ========================= */
+
+  .about-hero {
+    padding: 36px 12px;
+  }
+
+  .about-title {
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+
+  .about-subtitle {
+    font-size: 14px;
+  }
+
+  .about-container {
+    padding: 28px 12px;
+  }
+
+  .about-card {
+    padding: 20px 14px;
+    border-radius: 10px;
+  }
+
+  .about-card h2 {
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+
+  .about-card p {
+    font-size: 14px;
+  }
+
+  .offer-section {
+    margin-top: 28px;
+  }
+
+  .offer-title {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  .offer-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .offer-card {
+    padding: 22px 14px;
+  }
+
+  .offer-card h3 {
+    font-size: 18px;
+  }
+
+  .offer-card p {
+    font-size: 14px;
+  }
+
+  .about-cta {
+    margin-top: 28px;
+    padding: 30px 12px;
+    border-radius: 10px;
+  }
+
+  .about-cta h2 {
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+
+  .about-cta p {
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+
+  .about-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  /* =========================
+     ADMIN PAGE
+  ========================= */
+
+  .admin-page {
+    margin: 0 4%;
+    padding: 18px 0;
+  }
+
+  .admin-title {
+    font-size: 20px;
+    margin-bottom: 18px;
+  }
+
+  .admin-section-title {
+    font-size: 15px;
+  }
+
+  .admin-list {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .admin-card {
+    padding: 12px;
+  }
+
+  .admin-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .admin-btn {
+    flex: 1;
+    min-width: 70px;
+    text-align: center;
+    font-size: 12px;
+    padding: 7px 10px;
+  }
+} /* end @media (max-width: 480px) */
