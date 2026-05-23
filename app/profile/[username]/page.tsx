@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EventsGrid from "@/components/EventsGrid";
@@ -47,6 +48,20 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   // =========================
+  // EDIT STATE
+  // =========================
+  const [editing, setEditing] = useState(false);
+
+  const [editUsername, setEditUsername] = useState("");
+  const [editBio, setEditBio] = useState("");
+
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
+
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [bannerUploading, setBannerUploading] = useState(false);
+
+  // =========================
   // LOAD PROFILE
   // =========================
   useEffect(() => {
@@ -55,18 +70,11 @@ export default function ProfilePage() {
 
       setLoading(true);
 
-      console.log("SEARCHING USERNAME:", username);
-
-      // =========================
-      // GET PROFILE
-      // =========================
       const { data: profileData, error } = await supabase
         .from("profiles")
         .select("*")
         .ilike("username", username)
         .single();
-
-      console.log("PROFILE RESULT:", profileData, error);
 
       if (error || !profileData) {
         setProfile(null);
@@ -75,6 +83,15 @@ export default function ProfilePage() {
       }
 
       setProfile(profileData);
+
+      // =========================
+      // DEFAULT EDIT VALUES
+      // =========================
+      setEditUsername(profileData.username || "");
+      setEditBio(profileData.bio || "");
+
+      setAvatarUrl(profileData.avatar_url || "");
+      setBannerUrl(profileData.banner_url || "");
 
       // =========================
       // GET EVENTS
@@ -98,7 +115,105 @@ export default function ProfilePage() {
   // =========================
   // OWNER CHECK
   // =========================
-  const isOwner = loggedInUser && profile && loggedInUser.id === profile.id;
+  const isOwner =
+    loggedInUser && profile && String(loggedInUser.id) === String(profile.id);
+
+  // =========================
+  // IMAGE UPLOAD
+  // =========================
+  async function uploadImage(file: File, bucket: string, folder: string) {
+    const fileExt = file.name.split(".").pop();
+
+    const fileName = `${folder}/${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file);
+
+    if (error) {
+      console.error(error);
+
+      return null;
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+
+    return data.publicUrl;
+  }
+
+  // =========================
+  // AVATAR UPLOAD
+  // =========================
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setAvatarUploading(true);
+
+    const url = await uploadImage(file, "avatars", "profile-avatars");
+
+    if (url) {
+      setAvatarUrl(url);
+    }
+
+    setAvatarUploading(false);
+  }
+
+  // =========================
+  // BANNER UPLOAD
+  // =========================
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setBannerUploading(true);
+
+    const url = await uploadImage(file, "banners", "profile-banners");
+
+    if (url) {
+      setBannerUrl(url);
+    }
+
+    setBannerUploading(false);
+  }
+
+  // =========================
+  // SAVE PROFILE
+  // =========================
+  async function saveProfile() {
+    if (!profile) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        username: editUsername,
+        bio: editBio,
+
+        avatar_url: avatarUrl,
+        banner_url: bannerUrl,
+      })
+      .eq("id", profile.id);
+
+    if (error) {
+      alert(error.message);
+
+      return;
+    }
+
+    setProfile({
+      ...profile,
+
+      username: editUsername,
+      bio: editBio,
+
+      avatar_url: avatarUrl,
+      banner_url: bannerUrl,
+    });
+
+    setEditing(false);
+  }
 
   // =========================
   // LOADING
@@ -107,7 +222,9 @@ export default function ProfilePage() {
     return (
       <main>
         <Header />
+
         <p className="org-loading">Loading profile...</p>
+
         <Footer />
       </main>
     );
@@ -120,7 +237,9 @@ export default function ProfilePage() {
     return (
       <main>
         <Header />
+
         <p className="org-loading">Profile not found.</p>
+
         <Footer />
       </main>
     );
@@ -136,16 +255,27 @@ export default function ProfilePage() {
       <section className="profile-page">
         <div className="profile-banner">
           <img
-            src={profile.banner_url || "/images/default-banner.jpg"}
+            src={
+              bannerUrl?.startsWith("http")
+                ? bannerUrl
+                : "/images/default-banner.jpg"
+            }
             alt="banner"
           />
         </div>
 
         <div className="profile-card">
           <img
-            src={profile.avatar_url || "/images/user-icon.png"}
+            src={
+              avatarUrl?.startsWith("http")
+                ? avatarUrl
+                : "/images/user-icon.png"
+            }
             alt="profile"
             className="profile-main-pic"
+            onError={(e) => {
+              e.currentTarget.src = "/images/user-icon.png";
+            }}
           />
 
           <h1>{profile.username || "Unnamed User"}</h1>
@@ -153,7 +283,12 @@ export default function ProfilePage() {
           <p className="profile-bio">{profile.bio || "No bio yet."}</p>
 
           {isOwner && (
-            <button className="edit-profile-btn">Edit Profile</button>
+            <button
+              className="edit-profile-btn"
+              onClick={() => setEditing(true)}
+            >
+              Edit Profile
+            </button>
           )}
         </div>
       </section>
@@ -164,6 +299,7 @@ export default function ProfilePage() {
       <section className="profile-stats">
         <div className="profile-stat-box">
           <h2>{events.length}</h2>
+
           <p>Events Made</p>
         </div>
       </section>
@@ -176,6 +312,50 @@ export default function ProfilePage() {
 
         <EventsGrid events={events} />
       </section>
+
+      {/* =========================
+          EDIT MODAL
+      ========================= */}
+      {editing && (
+        <div className="edit-modal-overlay">
+          <div className="edit-modal">
+            <h2>Edit Profile</h2>
+
+            <input
+              type="text"
+              value={editUsername}
+              onChange={(e) => setEditUsername(e.target.value)}
+              placeholder="Username"
+            />
+
+            <textarea
+              value={editBio}
+              onChange={(e) => setEditBio(e.target.value)}
+              placeholder="Bio"
+            />
+
+            {/* AVATAR */}
+            <label>Avatar Upload</label>
+
+            <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+
+            {avatarUploading && <p>Uploading avatar...</p>}
+
+            {/* BANNER */}
+            <label>Banner Upload</label>
+
+            <input type="file" accept="image/*" onChange={handleBannerUpload} />
+
+            {bannerUploading && <p>Uploading banner...</p>}
+
+            <div className="edit-modal-buttons">
+              <button onClick={saveProfile}>Save</button>
+
+              <button onClick={() => setEditing(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </main>

@@ -7,6 +7,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function EventCreatePage() {
+  // =========================
+  // SLUG
+  // =========================
   function generateSlug(title: string) {
     return title
       .toLowerCase()
@@ -17,6 +20,10 @@ export default function EventCreatePage() {
   }
 
   const today = new Date().toISOString().split("T")[0];
+
+  // =========================
+  // SESSION
+  // =========================
   const [session, setSession] = useState<Session | null>(null);
   const user = session?.user ?? null;
 
@@ -34,6 +41,9 @@ export default function EventCreatePage() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // =========================
+  // USER ORG
+  // =========================
   const [userOrg, setUserOrg] = useState<any>(null);
   const [checkingOrg, setCheckingOrg] = useState(true);
 
@@ -48,8 +58,6 @@ export default function EventCreatePage() {
         .from("organizations")
         .select("*")
         .eq("owner_id", user.id);
-
-      console.log("ORG QUERY:", data, error);
 
       if (error) {
         console.error(error);
@@ -69,15 +77,31 @@ export default function EventCreatePage() {
     fetchUserOrg();
   }, [user]);
 
+  // =========================
+  // FORM STATE
+  // =========================
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+
   const [eventDate, setEventDate] = useState("");
   const [tags, setTags] = useState("");
 
+  // =========================
+  // IMAGE UPLOAD
+  // =========================
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const [imagePreview, setImagePreview] = useState("");
+
+  // =========================
+  // STATUS
+  // =========================
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  // =========================
+  // CREATE EVENT
+  // =========================
   async function handleCreateEvent(e: React.FormEvent) {
     e.preventDefault();
 
@@ -104,6 +128,9 @@ export default function EventCreatePage() {
     setLoading(true);
     setMessage("");
 
+    // =========================
+    // TAGS
+    // =========================
     const tagArray = tags
       .split(",")
       .map((tag) => tag.trim())
@@ -111,10 +138,47 @@ export default function EventCreatePage() {
 
     const slug = generateSlug(title);
 
+    // =========================
+    // IMAGE UPLOAD
+    // =========================
+    let uploadedImageUrl = "";
+
+    if (imageFile) {
+      const fileExt = imageFile.name.split(".").pop();
+
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}.${fileExt}`;
+
+      const filePath = `event-images/${fileName}`;
+
+      // upload
+      const { error: uploadError } = await supabase.storage
+        .from("events")
+        .upload(filePath, imageFile);
+
+      if (uploadError) {
+        console.error(uploadError);
+        setMessage(uploadError.message);
+        setLoading(false);
+        return;
+      }
+
+      // get public url
+      const { data } = supabase.storage.from("events").getPublicUrl(filePath);
+
+      uploadedImageUrl = data.publicUrl;
+    }
+
+    // =========================
+    // INSERT EVENT
+    // =========================
     const { error } = await supabase.from("events").insert({
       title,
       description,
-      image_url: imageUrl,
+
+      image_url: uploadedImageUrl,
+
       event_date: eventDate,
       tags: tagArray,
 
@@ -126,6 +190,7 @@ export default function EventCreatePage() {
       created_by: user.id,
 
       approved: false,
+
       created_at: new Date().toISOString(),
     });
 
@@ -137,9 +202,12 @@ export default function EventCreatePage() {
 
       setTitle("");
       setDescription("");
-      setImageUrl("");
+
       setEventDate("");
       setTags("");
+
+      setImageFile(null);
+      setImagePreview("");
     }
 
     setLoading(false);
@@ -163,6 +231,7 @@ export default function EventCreatePage() {
             </p>
           )}
 
+          {/* TITLE */}
           <input
             type="text"
             placeholder="Event Title"
@@ -171,6 +240,7 @@ export default function EventCreatePage() {
             required
           />
 
+          {/* DESCRIPTION */}
           <textarea
             placeholder="Event Description"
             value={description}
@@ -178,21 +248,43 @@ export default function EventCreatePage() {
             required
           />
 
-          <input
-            type="text"
-            placeholder="Image URL"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-          />
+          {/* IMAGE UPLOAD */}
+          <div className="event-upload-box">
+            <label>Event Image</label>
 
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+
+                if (!file) return;
+
+                setImageFile(file);
+
+                setImagePreview(URL.createObjectURL(file));
+              }}
+            />
+
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="preview"
+                className="event-upload-preview"
+              />
+            )}
+          </div>
+
+          {/* DATE */}
           <input
             type="date"
             value={eventDate}
-            min={today} // ✅ prevents selecting past dates
+            min={today}
             onChange={(e) => setEventDate(e.target.value)}
             required
           />
 
+          {/* TAGS */}
           <input
             type="text"
             placeholder="Tags (example: seminar, technology, workshop)"
@@ -200,6 +292,7 @@ export default function EventCreatePage() {
             onChange={(e) => setTags(e.target.value)}
           />
 
+          {/* BUTTON */}
           <button disabled={loading}>
             {loading ? "Creating..." : "Create Event"}
           </button>

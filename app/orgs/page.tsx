@@ -101,9 +101,16 @@ export default function OrgsPage() {
           >
             <div className="org-card">
               <img
-                src={org.logo_url || "/images/temp-org-image.png"}
+                src={
+                  org.logo_url?.startsWith("http")
+                    ? org.logo_url
+                    : "/images/temp-org-image.png"
+                }
                 alt={org.name}
                 className="org-logo"
+                onError={(e) => {
+                  e.currentTarget.src = "/images/temp-org-image.png";
+                }}
               />
 
               <h3>{org.name}</h3>

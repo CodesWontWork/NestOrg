@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function EventPage() {
+  // =========================
+  // PARAMS
+  // =========================
   const params = useParams();
-  const router = useRouter();
 
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+
+  // =========================
+  // SESSION
+  // =========================
   const [session, setSession] = useState<Session | null>(null);
+
   const user = session?.user ?? null;
 
   useEffect(() => {
@@ -29,23 +37,80 @@ export default function EventPage() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // =========================
+  // STATES
+  // =========================
   const [event, setEvent] = useState<any>(null);
+
   const [loading, setLoading] = useState(true);
+
   const [hypeCount, setHypeCount] = useState(0);
   const [hasHyped, setHasHyped] = useState(false);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+
+  const [editing, setEditing] = useState(false);
+
+  // =========================
+  // EDIT STATES
+  // =========================
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editTags, setEditTags] = useState("");
+
+  const [imageUrl, setImageUrl] = useState("");
+
+  const [imageUploading, setImageUploading] = useState(false);
+
+  // =========================
+  // ADMIN CHECK
+  // =========================
+  async function checkAdmin(userId: string) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("admin")
+      .eq("id", userId)
+      .single();
+
+    return data?.admin === true;
+  }
+
+  // =========================
+  // FETCH EVENT
+  // =========================
   useEffect(() => {
     async function fetchEvent() {
       if (!slug) return;
 
       setLoading(true);
 
+      // =========================
+      // GET USER
+      // =========================
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      let admin = false;
+
+      if (user) {
+        admin = await checkAdmin(user.id);
+
+        setIsAdmin(admin);
+      }
+
+      // =========================
+      // GET EVENT
+      // =========================
       let { data, error } = await supabase
         .from("events")
         .select("*")
         .eq("slug", slug)
         .single();
 
+      // fallback
       if (error || !data) {
         const fallback = await supabase
           .from("events")
@@ -58,18 +123,51 @@ export default function EventPage() {
 
       if (!data) {
         setLoading(false);
+
         return;
       }
 
+      // =========================
+      // OWNER CHECK
+      // =========================
+      if (user && (data.created_by === user.id || data.owner_id === user.id)) {
+        setIsOwner(true);
+      }
+
+      // =========================
+      // SET EVENT
+      // =========================
       setEvent(data);
 
+      // =========================
+      // EDIT DEFAULTS
+      // =========================
+      setEditTitle(data.title || "");
+
+      setEditDescription(data.description || "");
+
+      setEditDate(data.event_date || "");
+
+      setEditTags(Array.isArray(data.tags) ? data.tags.join(", ") : "");
+
+      setImageUrl(data.image_url || "");
+
+      // =========================
+      // HYPE COUNT
+      // =========================
       const { count } = await supabase
         .from("event_hype")
-        .select("*", { count: "exact", head: true })
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
         .eq("event_id", data.id);
 
       setHypeCount(count || 0);
 
+      // =========================
+      // USER HYPED?
+      // =========================
       if (user) {
         const { data: hypeData } = await supabase
           .from("event_hype")
@@ -85,8 +183,103 @@ export default function EventPage() {
     }
 
     fetchEvent();
-  }, [slug, user]);
+  }, [slug]);
 
+  // =========================
+  // IMAGE UPLOAD
+  // =========================
+  async function uploadImage(file: File) {
+    const fileExt = file.name.split(".").pop();
+
+    const fileName = `events/${Date.now()}-${Math.random()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("events")
+      .upload(fileName, file);
+
+    if (error) {
+      console.error(error);
+
+      return null;
+    }
+
+    const { data } = supabase.storage.from("events").getPublicUrl(fileName);
+
+    return data.publicUrl;
+  }
+
+  // =========================
+  // HANDLE IMAGE
+  // =========================
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setImageUploading(true);
+
+    const url = await uploadImage(file);
+
+    if (url) {
+      setImageUrl(url);
+    }
+
+    setImageUploading(false);
+  }
+
+  // =========================
+  // SAVE EVENT
+  // =========================
+  async function saveEvent() {
+    if (!event) return;
+
+    const { error } = await supabase
+      .from("events")
+      .update({
+        title: editTitle,
+
+        description: editDescription,
+
+        event_date: editDate,
+
+        image_url: imageUrl,
+
+        tags: editTags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== ""),
+      })
+      .eq("id", event.id);
+
+    if (error) {
+      alert(error.message);
+
+      return;
+    }
+
+    setEvent({
+      ...event,
+
+      title: editTitle,
+
+      description: editDescription,
+
+      event_date: editDate,
+
+      image_url: imageUrl,
+
+      tags: editTags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag !== ""),
+    });
+
+    setEditing(false);
+  }
+
+  // =========================
+  // HYPE
+  // =========================
   async function toggleHype() {
     if (!user || !event) return;
 
@@ -98,6 +291,7 @@ export default function EventPage() {
         .eq("user_id", user.id);
 
       setHasHyped(false);
+
       setHypeCount((prev) => prev - 1);
     } else {
       const { error } = await supabase.from("event_hype").insert({
@@ -107,11 +301,15 @@ export default function EventPage() {
 
       if (!error) {
         setHasHyped(true);
+
         setHypeCount((prev) => prev + 1);
       }
     }
   }
 
+  // =========================
+  // TAGS
+  // =========================
   let parsedTags: string[] = [];
 
   try {
@@ -122,6 +320,9 @@ export default function EventPage() {
     parsedTags = [];
   }
 
+  // =========================
+  // IMAGE
+  // =========================
   function getImage(url: string) {
     if (!url || !url.startsWith("http")) {
       return "/images/temp-event-image.png";
@@ -130,8 +331,19 @@ export default function EventPage() {
     return url;
   }
 
-  if (loading) return <p>Loading...</p>;
-  if (!event) return <p>Event not found</p>;
+  // =========================
+  // LOADING
+  // =========================
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  // =========================
+  // NOT FOUND
+  // =========================
+  if (!event) {
+    return <p>Event not found</p>;
+  }
 
   return (
     <main>
@@ -140,7 +352,7 @@ export default function EventPage() {
       <section className="event-page-section">
         <div className="event-page-container">
           <img
-            src={getImage(event.image_url)}
+            src={getImage(imageUrl)}
             className="event-page-image"
             alt={event.title}
           />
@@ -158,6 +370,7 @@ export default function EventPage() {
               </p>
             )}
 
+            {/* HYPE */}
             <div className="event-hype-section">
               <p className="event-hype-count">{hypeCount} hype</p>
 
@@ -170,16 +383,76 @@ export default function EventPage() {
               </button>
             </div>
 
+            {/* DESCRIPTION */}
             <p className="event-description">{event.description}</p>
 
+            {/* TAGS */}
             <div className="event-tags">
               {parsedTags.map((t, i) => (
                 <span key={i}>#{t}</span>
               ))}
             </div>
+
+            {/* EDIT BUTTON */}
+            {(isAdmin || isOwner) && (
+              <button
+                className="edit-profile-btn"
+                onClick={() => setEditing(true)}
+              >
+                Edit Event
+              </button>
+            )}
           </div>
         </div>
       </section>
+
+      {/* EDIT MODAL */}
+      {editing && (
+        <div className="edit-modal-overlay">
+          <div className="edit-modal">
+            <h2>Edit Event</h2>
+
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Event Title"
+            />
+
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Description"
+            />
+
+            <input
+              type="date"
+              value={editDate}
+              onChange={(e) => setEditDate(e.target.value)}
+            />
+
+            {/* IMAGE */}
+            <label>Event Image</label>
+
+            <input type="file" accept="image/*" onChange={handleImageUpload} />
+
+            {imageUploading && <p>Uploading image...</p>}
+
+            <input
+              type="text"
+              value={editTags}
+              onChange={(e) => setEditTags(e.target.value)}
+              placeholder="Tags"
+            />
+
+            <div className="edit-modal-buttons">
+              <button onClick={saveEvent}>Save</button>
+
+              <button onClick={() => setEditing(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </main>
