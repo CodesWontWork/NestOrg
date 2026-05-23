@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EventsGrid from "@/components/EventsGrid";
+import { enrichEvents } from "@/components/enrichEvents";
 
 export default function OrganizationPage() {
   const params = useParams();
@@ -70,8 +71,12 @@ export default function OrganizationPage() {
 
       if (eventError) {
         console.error(eventError);
+
       } else {
-        setEvents(eventData || []);
+
+        const enriched = await enrichEvents(eventData || []);
+
+        setEvents(enriched);
       }
 
       setLoading(false);

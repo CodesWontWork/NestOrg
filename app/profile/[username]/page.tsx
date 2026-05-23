@@ -1,15 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EventsGrid from "@/components/EventsGrid";
+import { enrichEvents } from "@/components/enrichEvents";
 
 export default function ProfilePage() {
+  // =========================
+  // PARAMS
+  // =========================
+  const params = useParams();
+
+  const username = decodeURIComponent(
+    Array.isArray(params.username) ? params.username[0] : params.username || "",
+  );
+
+  // =========================
+  // SESSION
+  // =========================
   const [session, setSession] = useState<any>(null);
-  const user = session?.user ?? null;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -22,96 +34,94 @@ export default function ProfilePage() {
       setSession(session);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  async function logout() {
-    await supabase.auth.signOut();
-    setSession(null);
-  }
+  const loggedInUser = session?.user;
 
+  // =========================
+  // STATE
+  // =========================
   const [profile, setProfile] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [editing, setEditing] = useState(false);
-
-  const [editUsername, setEditUsername] = useState("");
-  const [editBio, setEditBio] = useState("");
-  const [editBanner, setEditBanner] = useState("");
-  const [editAvatar, setEditAvatar] = useState("");
-
-  const [events, setEvents] = useState<any[]>([]);
-
+  // =========================
+  // LOAD PROFILE
+  // =========================
   useEffect(() => {
     async function loadProfile() {
-      if (!user) return;
+      if (!username) return;
 
       setLoading(true);
 
-      const { data: profileData } = await supabase
+      console.log("SEARCHING USERNAME:", username);
+
+      // =========================
+      // GET PROFILE
+      // =========================
+      const { data: profileData, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .ilike("username", username)
         .single();
 
-      const { data: eventsData } = await supabase
-        .from("events")
-        .select("*")
-        .eq("created_by", user.id);
+      console.log("PROFILE RESULT:", profileData, error);
 
-      if (profileData) {
-        setProfile(profileData);
-
-        setEditUsername(profileData.username || "");
-        setEditBio(profileData.bio || "");
-        setEditBanner(profileData.banner_url || "");
-        setEditAvatar(profileData.avatar_url || "");
+      if (error || !profileData) {
+        setProfile(null);
+        setLoading(false);
+        return;
       }
 
-      setEvents(eventsData || []);
+      setProfile(profileData);
+
+      // =========================
+      // GET EVENTS
+      // =========================
+      const { data: eventData } = await supabase
+        .from("events")
+        .select("*")
+        .eq("created_by", profileData.id)
+        .order("created_at", { ascending: false });
+
+      const enrichedEvents = await enrichEvents(eventData || []);
+
+      setEvents(enrichedEvents);
+
       setLoading(false);
     }
 
     loadProfile();
-  }, [user]);
+  }, [username]);
 
-  async function saveProfile() {
-    if (!user) return;
+  // =========================
+  // OWNER CHECK
+  // =========================
+  const isOwner = loggedInUser && profile && loggedInUser.id === profile.id;
 
-    const updates = {
-      username: editUsername,
-      bio: editBio,
-      banner_url: editBanner,
-      avatar_url: editAvatar,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase
-      .from("profiles")
-      .update(updates)
-      .eq("id", user.id);
-
-    if (error) {
-      console.error("Save profile error:", error);
-      alert(error.message);
-      return;
-    }
-
-    setProfile((prev: any) => ({
-      ...prev,
-      ...updates,
-    }));
-
-    setEditing(false);
+  // =========================
+  // LOADING
+  // =========================
+  if (loading) {
+    return (
+      <main>
+        <Header />
+        <p className="org-loading">Loading profile...</p>
+        <Footer />
+      </main>
+    );
   }
 
-  if (!user) {
+  // =========================
+  // NOT FOUND
+  // =========================
+  if (!profile) {
     return (
-      <main className="profile-not-logged-in">
-        <h1>Please Login First</h1>
-        <Link href="/auth">Go To Login</Link>
+      <main>
+        <Header />
+        <p className="org-loading">Profile not found.</p>
+        <Footer />
       </main>
     );
   }
@@ -120,116 +130,52 @@ export default function ProfilePage() {
     <main>
       <Header />
 
+      {/* =========================
+          PROFILE HERO
+      ========================= */}
       <section className="profile-page">
         <div className="profile-banner">
           <img
-            src={profile?.banner_url || "/images/default-banner.jpg"}
+            src={profile.banner_url || "/images/default-banner.jpg"}
             alt="banner"
           />
         </div>
 
         <div className="profile-card">
           <img
-            src={profile?.avatar_url || "/images/user-icon.png"}
+            src={profile.avatar_url || "/images/user-icon.png"}
             alt="profile"
             className="profile-main-pic"
           />
 
-          <h1>{profile?.username || "Unnamed User"}</h1>
+          <h1>{profile.username || "Unnamed User"}</h1>
 
-          <p className="profile-bio">{profile?.bio || "No bio yet."}</p>
+          <p className="profile-bio">{profile.bio || "No bio yet."}</p>
 
-          <button className="edit-profile-btn" onClick={() => setEditing(true)}>
-            Edit Profile
-          </button>
+          {isOwner && (
+            <button className="edit-profile-btn">Edit Profile</button>
+          )}
         </div>
       </section>
 
+      {/* =========================
+          STATS
+      ========================= */}
       <section className="profile-stats">
         <div className="profile-stat-box">
           <h2>{events.length}</h2>
-
           <p>Events Made</p>
         </div>
-
-        {/*          
-        <div className="profile-stat-box">
-
-          <h2>
-            {profile?.org_memberships?.length || 0}
-          </h2>
-
-          <p>Organization Memberships</p>
-
-        </div>*/}
       </section>
 
-      {/* <section className="profile-section">
-
-        <h2>Organization Memberships</h2>
-
-        <div className="profile-grid">
-
-          {(profile?.org_memberships || []).map(
-            (org: string, i: number) => (
-
-              <div className="profile-chip" key={i}>
-                {org}
-              </div>
-
-            )
-          )}
-
-        </div>
-
-      </section> */}
-
+      {/* =========================
+          EVENTS
+      ========================= */}
       <section className="profile-section">
         <h2>Events Created</h2>
 
         <EventsGrid events={events} />
       </section>
-
-      {editing && (
-        <div className="edit-modal-overlay">
-          <div className="edit-modal">
-            <h2>Edit Profile</h2>
-
-            <input
-              type="text"
-              placeholder="Username"
-              value={editUsername}
-              onChange={(e) => setEditUsername(e.target.value)}
-            />
-
-            <textarea
-              placeholder="Bio"
-              value={editBio}
-              onChange={(e) => setEditBio(e.target.value)}
-            />
-
-            <input
-              type="text"
-              placeholder="Profile Picture URL"
-              value={editAvatar}
-              onChange={(e) => setEditAvatar(e.target.value)}
-            />
-
-            <input
-              type="text"
-              placeholder="Banner URL"
-              value={editBanner}
-              onChange={(e) => setEditBanner(e.target.value)}
-            />
-
-            <div className="edit-modal-buttons">
-              <button onClick={saveProfile}>Save</button>
-
-              <button onClick={() => setEditing(false)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </main>

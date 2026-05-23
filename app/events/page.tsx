@@ -33,8 +33,11 @@ export default function EventsPage() {
         return;
       }
 
-      const eventsWithHype = await Promise.all(
+      const eventsWithData = await Promise.all(
         (data || []).map(async (event) => {
+          // =========================
+          // HYPE COUNT
+          // =========================
           const { count } = await supabase
             .from("event_hype")
             .select("*", {
@@ -43,14 +46,37 @@ export default function EventsPage() {
             })
             .eq("event_id", event.id);
 
+          // =========================
+          // CREATOR PROFILE
+          // =========================
+          let creator_username = null;
+          let creator_avatar = null;
+
+          if (event.created_by) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("username, avatar_url")
+              .eq("id", event.created_by)
+              .single();
+
+            creator_username = profile?.username || null;
+            creator_avatar = profile?.avatar_url || null;
+          }
+
           return {
             ...event,
+
+            // hype
             hype_count: count || 0,
+
+            // creator
+            creator_username,
+            creator_avatar,
           };
         }),
       );
 
-      setEvents(eventsWithHype);
+      setEvents(eventsWithData);
 
       setLoading(false);
     }

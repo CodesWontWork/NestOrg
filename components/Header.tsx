@@ -76,7 +76,7 @@ export default function Header() {
     <header>
       <div className="header-main-box">
         <div className="header-left-box">
-          <img src="/images/hornet-icon.png" alt="logo" />
+          <img src="/images/nest_org.svg" alt="logo" />
 
           <div className="header-left-text">
             <h1>NestOrg</h1>
