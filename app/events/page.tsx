@@ -20,14 +20,14 @@ type Event = {
   slug?: string;
   org_name?: string;
   hype_count?: number;
-  creator_username?: string;
-  creator_avatar?: string;
+  creator_username?: string | null;
+  creator_avatar?: string | null;
 };
 
 type Profile = {
   id: string;
-  username?: string;
-  avatar_url?: string;
+  username?: string | null;
+  avatar_url?: string | null;
 };
 
 export default function EventsPage() {
@@ -44,8 +44,6 @@ export default function EventsPage() {
   const [sortBy, setSortBy] = useState("created");
 
   const [sortDirection, setSortDirection] = useState("desc");
-
-  const user = session?.user ?? null;
 
   // =========================
   // SESSION
@@ -100,40 +98,62 @@ export default function EventsPage() {
           throw eventsError;
         }
 
-        const cleanedEvents: Event[] = (eventsData || []).map((event) => {
-          let parsedTags: string[] = [];
+        // =========================
+        // CLEAN TAGS
+        // =========================
+        const cleanedEvents: Event[] = (eventsData || []).map(
+          (event): Event => {
+            let parsedTags: string[] = [];
 
-          try {
-            if (Array.isArray(event.tags)) {
-              parsedTags = event.tags;
-            } else if (typeof event.tags === "string") {
-              const parsed = JSON.parse(event.tags);
+            try {
+              if (Array.isArray(event.tags)) {
+                parsedTags = event.tags as string[];
+              } else if (typeof event.tags === "string") {
+                const parsed = JSON.parse(event.tags);
 
-              parsedTags = Array.isArray(parsed) ? parsed : [event.tags];
+                parsedTags = Array.isArray(parsed)
+                  ? (parsed as string[])
+                  : [event.tags];
+              }
+            } catch {
+              parsedTags = [];
             }
-          } catch {
-            parsedTags = [];
-          }
 
-          return {
-            ...event,
-            tags: parsedTags,
-          };
-        });
+            return {
+              id: String(event.id),
+              title: event.title || "",
+              description: event.description || "",
+              image_url: event.image_url || "",
+              event_date: event.event_date || "",
+              created_at: event.created_at || "",
+              created_by: event.created_by || "",
+              slug: event.slug || "",
+              org_name: event.org_name || "",
+              tags: parsedTags,
+              hype_count: 0,
+              creator_username: null,
+              creator_avatar: null,
+            };
+          },
+        );
 
         // =========================
-        // GET USER IDS
+        // USER IDS
         // =========================
         const userIds = [
           ...new Set(
-            cleanedEvents.map((event) => event.created_by).filter(Boolean),
+            cleanedEvents
+              .map((event) => event.created_by)
+              .filter(
+                (id): id is string => typeof id === "string" && id.length > 0,
+              ),
           ),
-        ] as string[];
+        ];
 
         // =========================
-        // FETCH PROFILES
+        // PROFILE MAP
         // =========================
-        let profileMap: Record<string, Profile> = {};
+        const profileMap: Record<string, Profile> = {};
 
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
@@ -141,18 +161,13 @@ export default function EventsPage() {
             .select("id, username, avatar_url")
             .in("id", userIds);
 
-          profileMap = (profiles || []).reduce(
-            (acc: Record<string, Profile>, profile: Profile) => {
-              acc[profile.id] = profile;
-
-              return acc;
-            },
-            {},
-          );
+          (profiles || []).forEach((profile: Profile) => {
+            profileMap[profile.id] = profile;
+          });
         }
 
         // =========================
-        // FETCH HYPE COUNTS
+        // HYPE COUNTS
         // =========================
         const { data: hypeData } = await supabase
           .from("event_hype")
@@ -160,14 +175,14 @@ export default function EventsPage() {
 
         const hypeMap: Record<string, number> = {};
 
-        (hypeData || []).forEach((hype) => {
+        (hypeData || []).forEach((hype: { event_id: string }) => {
           hypeMap[hype.event_id] = (hypeMap[hype.event_id] || 0) + 1;
         });
 
         // =========================
-        // MERGE DATA
+        // MERGE EVERYTHING
         // =========================
-        const enrichedEvents: Event[] = cleanedEvents.map((event) => {
+        const enrichedEvents: Event[] = cleanedEvents.map((event): Event => {
           const profile = event.created_by
             ? profileMap[event.created_by]
             : undefined;
@@ -184,10 +199,14 @@ export default function EventsPage() {
         });
 
         setEvents(enrichedEvents);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
 
-        setError(err.message || "Failed to load events.");
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Failed to load events.");
+        }
       } finally {
         setLoading(false);
       }
@@ -199,7 +218,7 @@ export default function EventsPage() {
   // =========================
   // FILTER + SORT
   // =========================
-  const filteredEvents = useMemo(() => {
+  const filteredEvents: Event[] = useMemo(() => {
     const q = search.toLowerCase().trim();
 
     let filtered = [...events];
@@ -209,7 +228,7 @@ export default function EventsPage() {
     // =========================
     if (q) {
       filtered = filtered.filter((event) => {
-        const titleMatch = event.title?.toLowerCase().includes(q);
+        const titleMatch = event.title.toLowerCase().includes(q);
 
         const tagsMatch = (event.tags || [])
           .join(" ")
@@ -227,7 +246,7 @@ export default function EventsPage() {
       let comparison = 0;
 
       if (sortBy === "alphabetical") {
-        comparison = (a.title || "").localeCompare(b.title || "");
+        comparison = a.title.localeCompare(b.title);
       } else if (sortBy === "event_date") {
         comparison =
           new Date(a.event_date || 0).getTime() -
@@ -293,7 +312,7 @@ export default function EventsPage() {
 
         {!loading && error && <p>{error}</p>}
 
-        {!loading && !error && <EventsGrid events={filteredEvents} />}
+        {!loading && !error && <EventsGrid events={filteredEvents as any} />}
       </div>
 
       <Footer />
