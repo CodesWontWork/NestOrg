@@ -8,95 +8,221 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import EventsGrid from "@/components/EventsGrid";
 
+type Event = {
+  id: string;
+  title: string;
+  description?: string;
+  image_url?: string;
+  event_date?: string;
+  tags?: string[];
+  created_at?: string;
+  created_by?: string;
+  slug?: string;
+  org_name?: string;
+  hype_count?: number;
+  creator_username?: string;
+  creator_avatar?: string;
+};
+
+type Profile = {
+  id: string;
+  username?: string;
+  avatar_url?: string;
+};
+
 export default function EventsPage() {
   const [session, setSession] = useState<Session | null>(null);
-  const user = session?.user ?? null;
-  const [events, setEvents] = useState<any[]>([]);
+
+  const [events, setEvents] = useState<Event[]>([]);
+
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState("");
+
   const [search, setSearch] = useState("");
+
   const [sortBy, setSortBy] = useState("created");
+
   const [sortDirection, setSortDirection] = useState("desc");
 
+  const user = session?.user ?? null;
+
+  // =========================
+  // SESSION
+  // =========================
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // =========================
+  // FETCH EVENTS
+  // =========================
   useEffect(() => {
     async function fetchEvents() {
-      setLoading(true);
+      try {
+        setLoading(true);
 
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("approved", true);
+        setError("");
 
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
+        // =========================
+        // EVENTS QUERY
+        // =========================
+        const { data: eventsData, error: eventsError } = await supabase
+          .from("events")
+          .select(
+            `
+              id,
+              title,
+              description,
+              image_url,
+              event_date,
+              tags,
+              created_at,
+              created_by,
+              slug,
+              org_name
+            `,
+          )
+          .eq("approved", true)
+          .order("created_at", { ascending: false });
 
-      const eventsWithData = await Promise.all(
-        (data || []).map(async (event) => {
-          // =========================
-          // HYPE COUNT
-          // =========================
-          const { count } = await supabase
-            .from("event_hype")
-            .select("*", {
-              count: "exact",
-              head: true,
-            })
-            .eq("event_id", event.id);
+        if (eventsError) {
+          throw eventsError;
+        }
 
-          // =========================
-          // CREATOR PROFILE
-          // =========================
-          let creator_username = null;
-          let creator_avatar = null;
+        const cleanedEvents: Event[] = (eventsData || []).map((event) => {
+          let parsedTags: string[] = [];
 
-          if (event.created_by) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("username, avatar_url")
-              .eq("id", event.created_by)
-              .single();
+          try {
+            if (Array.isArray(event.tags)) {
+              parsedTags = event.tags;
+            } else if (typeof event.tags === "string") {
+              const parsed = JSON.parse(event.tags);
 
-            creator_username = profile?.username || null;
-            creator_avatar = profile?.avatar_url || null;
+              parsedTags = Array.isArray(parsed) ? parsed : [event.tags];
+            }
+          } catch {
+            parsedTags = [];
           }
 
           return {
             ...event,
-
-            // hype
-            hype_count: count || 0,
-
-            // creator
-            creator_username,
-            creator_avatar,
+            tags: parsedTags,
           };
-        }),
-      );
+        });
 
-      setEvents(eventsWithData);
+        // =========================
+        // GET USER IDS
+        // =========================
+        const userIds = [
+          ...new Set(
+            cleanedEvents.map((event) => event.created_by).filter(Boolean),
+          ),
+        ] as string[];
 
-      setLoading(false);
+        // =========================
+        // FETCH PROFILES
+        // =========================
+        let profileMap: Record<string, Profile> = {};
+
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, username, avatar_url")
+            .in("id", userIds);
+
+          profileMap = (profiles || []).reduce(
+            (acc: Record<string, Profile>, profile: Profile) => {
+              acc[profile.id] = profile;
+
+              return acc;
+            },
+            {},
+          );
+        }
+
+        // =========================
+        // FETCH HYPE COUNTS
+        // =========================
+        const { data: hypeData } = await supabase
+          .from("event_hype")
+          .select("event_id");
+
+        const hypeMap: Record<string, number> = {};
+
+        (hypeData || []).forEach((hype) => {
+          hypeMap[hype.event_id] = (hypeMap[hype.event_id] || 0) + 1;
+        });
+
+        // =========================
+        // MERGE DATA
+        // =========================
+        const enrichedEvents: Event[] = cleanedEvents.map((event) => {
+          const profile = event.created_by
+            ? profileMap[event.created_by]
+            : undefined;
+
+          return {
+            ...event,
+
+            hype_count: hypeMap[event.id] || 0,
+
+            creator_username: profile?.username || null,
+
+            creator_avatar: profile?.avatar_url || null,
+          };
+        });
+
+        setEvents(enrichedEvents);
+      } catch (err: any) {
+        console.error(err);
+
+        setError(err.message || "Failed to load events.");
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchEvents();
   }, []);
 
+  // =========================
+  // FILTER + SORT
+  // =========================
   const filteredEvents = useMemo(() => {
-    let filtered = events.filter((event) => {
-      const titleMatch = event.title
-        ?.toLowerCase()
-        .includes(search.toLowerCase());
+    const q = search.toLowerCase().trim();
 
-      const tagsMatch = Array.isArray(event.tags)
-        ? event.tags.join(" ").toLowerCase().includes(search.toLowerCase())
-        : (event.tags || "").toLowerCase().includes(search.toLowerCase());
+    let filtered = [...events];
 
-      return titleMatch || tagsMatch;
-    });
+    // =========================
+    // SEARCH
+    // =========================
+    if (q) {
+      filtered = filtered.filter((event) => {
+        const titleMatch = event.title?.toLowerCase().includes(q);
 
+        const tagsMatch = (event.tags || [])
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
+
+        return titleMatch || tagsMatch;
+      });
+    }
+
+    // =========================
+    // SORT
+    // =========================
     filtered.sort((a, b) => {
       let comparison = 0;
 
@@ -119,38 +245,6 @@ export default function EventsPage() {
 
     return filtered;
   }, [events, search, sortBy, sortDirection]);
-
-  const [profile, setProfile] = useState<any>(null);
-
-  useEffect(() => {
-    async function loadProfile() {
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("avatar_url, username")
-        .eq("id", user.id)
-        .single();
-
-      setProfile(data);
-    }
-
-    loadProfile();
-  }, [user]);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   return (
     <main>
@@ -197,7 +291,7 @@ export default function EventsPage() {
       <div id="Events-grid-box">
         {loading && <p>Loading events...</p>}
 
-        {error && <p>{error}</p>}
+        {!loading && error && <p>{error}</p>}
 
         {!loading && !error && <EventsGrid events={filteredEvents} />}
       </div>

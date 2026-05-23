@@ -67,6 +67,150 @@ export default function CreateOrganizationPage() {
   }
 
   // =========================
+  // COMPRESS IMAGE
+  // =========================
+  async function compressImage(file: File): Promise<File> {
+    return new Promise((resolve) => {
+      const image = new Image();
+
+      image.src = URL.createObjectURL(file);
+
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+
+        // =========================
+        // MAX SIZE
+        // =========================
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+
+        let width = image.width;
+        let height = image.height;
+
+        // =========================
+        // RESIZE
+        // =========================
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(image, 0, 0, width, height);
+
+        // =========================
+        // COMPRESS QUALITY
+        // =========================
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.\w+$/, ".jpg"),
+              {
+                type: "image/jpeg",
+              },
+            );
+
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          0.7,
+        );
+      };
+    });
+  }
+
+  // =========================
+  // UPLOAD IMAGE
+  // =========================
+  async function uploadImage(file: File, bucket: string, folder: string) {
+    // =========================
+    // TYPE CHECK
+    // =========================
+    if (!file.type.startsWith("image/")) {
+      setMessageType("error");
+      setMessage("Only image files are allowed.");
+
+      return null;
+    }
+
+    // =========================
+    // ORIGINAL SIZE LIMIT
+    // =========================
+    if (file.size > 10 * 1024 * 1024) {
+      setMessageType("error");
+      setMessage("Image must be below 10MB.");
+
+      return null;
+    }
+
+    // =========================
+    // COMPRESS IMAGE
+    // =========================
+    const compressedFile = await compressImage(file);
+
+    // =========================
+    // FINAL SIZE LIMIT
+    // =========================
+    if (compressedFile.size > 2 * 1024 * 1024) {
+      setMessageType("error");
+      setMessage(
+        "Compressed image is still too large. Please use a smaller image.",
+      );
+
+      return null;
+    }
+
+    const fileExt = "jpg";
+
+    const fileName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2)}.${fileExt}`;
+
+    const filePath = `${folder}/${fileName}`;
+
+    // =========================
+    // UPLOAD
+    // =========================
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, compressedFile, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) {
+      setMessageType("error");
+      setMessage(error.message);
+
+      return null;
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
+
+  // =========================
   // CREATE ORG
   // =========================
   async function handleCreateOrg(e: React.FormEvent) {
@@ -110,29 +254,14 @@ export default function CreateOrganizationPage() {
       let uploadedLogoUrl = "";
 
       if (logoFile) {
-        const fileExt = logoFile.name.split(".").pop();
+        const url = await uploadImage(logoFile, "organizations", "logos");
 
-        const fileName = `${Date.now()}-logo.${fileExt}`;
-
-        const filePath = `logos/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("organizations")
-          .upload(filePath, logoFile);
-
-        if (uploadError) {
-          setMessageType("error");
-          setMessage(uploadError.message);
-
+        if (!url) {
           setLoading(false);
           return;
         }
 
-        const { data } = supabase.storage
-          .from("organizations")
-          .getPublicUrl(filePath);
-
-        uploadedLogoUrl = data.publicUrl;
+        uploadedLogoUrl = url;
       }
 
       // =========================
@@ -141,29 +270,14 @@ export default function CreateOrganizationPage() {
       let uploadedBannerUrl = "";
 
       if (bannerFile) {
-        const fileExt = bannerFile.name.split(".").pop();
+        const url = await uploadImage(bannerFile, "banners", "org-banners");
 
-        const fileName = `${Date.now()}-banner.${fileExt}`;
-
-        const filePath = `banners/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("organizations")
-          .upload(filePath, bannerFile);
-
-        if (uploadError) {
-          setMessageType("error");
-          setMessage(uploadError.message);
-
+        if (!url) {
           setLoading(false);
           return;
         }
 
-        const { data } = supabase.storage
-          .from("organizations")
-          .getPublicUrl(filePath);
-
-        uploadedBannerUrl = data.publicUrl;
+        uploadedBannerUrl = url;
       }
 
       // =========================
@@ -262,11 +376,33 @@ export default function CreateOrganizationPage() {
 
             <input
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/webp"
               onChange={(e) => {
                 const file = e.target.files?.[0];
 
                 if (!file) return;
+
+                // =========================
+                // LIMIT TYPES
+                // =========================
+                const allowed = ["image/png", "image/jpeg", "image/webp"];
+
+                if (!allowed.includes(file.type)) {
+                  setMessageType("error");
+                  setMessage("Only PNG, JPG, and WEBP images are allowed.");
+
+                  return;
+                }
+
+                // =========================
+                // LIMIT SIZE
+                // =========================
+                if (file.size > 10 * 1024 * 1024) {
+                  setMessageType("error");
+                  setMessage("Image must be below 10MB.");
+
+                  return;
+                }
 
                 setLogoFile(file);
 
@@ -289,11 +425,27 @@ export default function CreateOrganizationPage() {
 
             <input
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/webp"
               onChange={(e) => {
                 const file = e.target.files?.[0];
 
                 if (!file) return;
+
+                const allowed = ["image/png", "image/jpeg", "image/webp"];
+
+                if (!allowed.includes(file.type)) {
+                  setMessageType("error");
+                  setMessage("Only PNG, JPG, and WEBP images are allowed.");
+
+                  return;
+                }
+
+                if (file.size > 10 * 1024 * 1024) {
+                  setMessageType("error");
+                  setMessage("Image must be below 10MB.");
+
+                  return;
+                }
 
                 setBannerFile(file);
 

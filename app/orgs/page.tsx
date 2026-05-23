@@ -1,22 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+type Org = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logo_url?: string;
+  tags?: string[];
+};
+
 export default function OrgsPage() {
-  const [orgs, setOrgs] = useState<any[]>([]);
+  const [orgs, setOrgs] = useState<Org[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
+  // =========================
+  // FETCH ORGS (OPTIMIZED QUERY)
+  // =========================
   useEffect(() => {
     async function fetchOrgs() {
       setLoading(true);
+      setError("");
 
-      const { data, error } = await supabase.from("organizations").select("*");
+      // IMPORTANT: only fetch what you use
+      const { data, error } = await supabase
+        .from("organizations")
+        .select("id, name, slug, description, logo_url, tags");
 
       if (error) {
         setError(error.message);
@@ -24,58 +40,89 @@ export default function OrgsPage() {
         return;
       }
 
-      const formattedData = (data || []).map((org) => {
-        let parsedTags: string[] = [];
+      const formatted: Org[] = (data || []).map((org) => {
+        let tags: string[] = [];
 
         try {
           if (Array.isArray(org.tags)) {
-            parsedTags = org.tags;
+            tags = org.tags;
           } else if (typeof org.tags === "string") {
-            parsedTags = JSON.parse(org.tags);
-
-            if (!Array.isArray(parsedTags)) {
-              parsedTags = [org.tags];
-            }
+            const parsed = JSON.parse(org.tags);
+            tags = Array.isArray(parsed) ? parsed : [];
           }
         } catch {
-          parsedTags = org.tags ? [org.tags] : [];
+          tags = [];
         }
 
         return {
-          ...org,
-          tags: parsedTags,
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+          description: org.description,
+          logo_url: org.logo_url,
+          tags,
         };
       });
 
-      setOrgs(formattedData);
+      setOrgs(formatted);
       setLoading(false);
     }
 
     fetchOrgs();
   }, []);
 
-  const filteredOrgs = orgs.filter((org) => {
-    const searchText = search.toLowerCase();
+  // =========================
+  // FILTER (MEMOIZED)
+  // =========================
+  const filteredOrgs = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return orgs;
 
-    const nameMatch = org.name?.toLowerCase().includes(searchText);
+    return orgs.filter((org) => {
+      const nameMatch = org.name?.toLowerCase().includes(q);
+      const tagsMatch = (org.tags || []).join(" ").toLowerCase().includes(q);
 
-    const tagsMatch = org.tags?.join(" ").toLowerCase().includes(searchText);
+      return nameMatch || tagsMatch;
+    });
+  }, [orgs, search]);
 
-    return nameMatch || tagsMatch;
-  });
+  // =========================
+  // IMAGE SAFETY
+  // =========================
+  function getLogo(url?: string) {
+    if (!url || typeof url !== "string") return "/images/temp-org-image.png";
+    if (!url.startsWith("http")) return "/images/temp-org-image.png";
+    return url;
+  }
 
+  // =========================
+  // LOADING / ERROR
+  // =========================
   if (loading) {
-    return <p>Loading organizations...</p>;
+    return (
+      <main>
+        <Header />
+        <p>Loading organizations...</p>
+        <Footer />
+      </main>
+    );
   }
 
   if (error) {
-    return <p>Error: {error}</p>;
+    return (
+      <main>
+        <Header />
+        <p>Error: {error}</p>
+        <Footer />
+      </main>
+    );
   }
 
   return (
     <main>
       <Header />
 
+      {/* SEARCH */}
       <section className="search-container">
         <input
           className="search-input"
@@ -90,6 +137,7 @@ export default function OrgsPage() {
         </Link>
       </section>
 
+      {/* GRID */}
       <div className="org-grid">
         {filteredOrgs.length === 0 && <p>No organizations found.</p>}
 
@@ -101,13 +149,11 @@ export default function OrgsPage() {
           >
             <div className="org-card">
               <img
-                src={
-                  org.logo_url?.startsWith("http")
-                    ? org.logo_url
-                    : "/images/temp-org-image.png"
-                }
+                src={getLogo(org.logo_url)}
                 alt={org.name}
                 className="org-logo"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   e.currentTarget.src = "/images/temp-org-image.png";
                 }}
@@ -118,7 +164,7 @@ export default function OrgsPage() {
               <p>{org.description}</p>
 
               <div className="org-tags">
-                {org.tags.map((tag: string, i: number) => (
+                {(org.tags || []).slice(0, 5).map((tag, i) => (
                   <span key={i}>#{tag}</span>
                 ))}
               </div>

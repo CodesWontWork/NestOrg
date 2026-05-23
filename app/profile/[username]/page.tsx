@@ -9,6 +9,12 @@ import Footer from "@/components/Footer";
 import EventsGrid from "@/components/EventsGrid";
 import { enrichEvents } from "@/components/enrichEvents";
 
+// =========================
+// IMAGE LIMITS (IMPORTANT)
+// =========================
+const MAX_IMAGE_SIZE_MB = 2; // reject anything above 2MB BEFORE compression
+const MAX_DIMENSION = 1280; // compress down to max 1280px
+
 export default function ProfilePage() {
   // =========================
   // PARAMS
@@ -84,18 +90,12 @@ export default function ProfilePage() {
 
       setProfile(profileData);
 
-      // =========================
-      // DEFAULT EDIT VALUES
-      // =========================
       setEditUsername(profileData.username || "");
       setEditBio(profileData.bio || "");
 
       setAvatarUrl(profileData.avatar_url || "");
       setBannerUrl(profileData.banner_url || "");
 
-      // =========================
-      // GET EVENTS
-      // =========================
       const { data: eventData } = await supabase
         .from("events")
         .select("*")
@@ -103,7 +103,6 @@ export default function ProfilePage() {
         .order("created_at", { ascending: false });
 
       const enrichedEvents = await enrichEvents(eventData || []);
-
       setEvents(enrichedEvents);
 
       setLoading(false);
@@ -112,27 +111,48 @@ export default function ProfilePage() {
     loadProfile();
   }, [username]);
 
-  // =========================
-  // OWNER CHECK
-  // =========================
   const isOwner =
     loggedInUser && profile && String(loggedInUser.id) === String(profile.id);
 
   // =========================
-  // IMAGE UPLOAD
+  // IMAGE COMPRESSION + VALIDATION
+  // =========================
+  async function compressImage(file: File): Promise<File> {
+    // reject oversized files early (bandwidth saver)
+    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+      alert("Image too large (max 2MB before compression)");
+      throw new Error("File too large");
+    }
+
+    const imageCompression = (await import("browser-image-compression"))
+      .default;
+
+    const compressed = await imageCompression(file, {
+      maxSizeMB: 1, // final size target
+      maxWidthOrHeight: MAX_DIMENSION,
+      useWebWorker: true,
+    });
+
+    return compressed;
+  }
+
+  // =========================
+  // SAFE UPLOAD
   // =========================
   async function uploadImage(file: File, bucket: string, folder: string) {
     const fileExt = file.name.split(".").pop();
 
-    const fileName = `${folder}/${Date.now()}.${fileExt}`;
+    const fileName = `${folder}/${Date.now()}-${Math.random()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from(bucket)
-      .upload(fileName, file);
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
 
     if (error) {
       console.error(error);
-
       return null;
     }
 
@@ -146,15 +166,17 @@ export default function ProfilePage() {
   // =========================
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     setAvatarUploading(true);
 
-    const url = await uploadImage(file, "avatars", "profile-avatars");
+    try {
+      const compressed = await compressImage(file);
+      const url = await uploadImage(compressed, "avatars", "profile-avatars");
 
-    if (url) {
-      setAvatarUrl(url);
+      if (url) setAvatarUrl(url);
+    } catch (err) {
+      console.error(err);
     }
 
     setAvatarUploading(false);
@@ -165,15 +187,17 @@ export default function ProfilePage() {
   // =========================
   async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
     setBannerUploading(true);
 
-    const url = await uploadImage(file, "banners", "profile-banners");
+    try {
+      const compressed = await compressImage(file);
+      const url = await uploadImage(compressed, "banners", "profile-banners");
 
-    if (url) {
-      setBannerUrl(url);
+      if (url) setBannerUrl(url);
+    } catch (err) {
+      console.error(err);
     }
 
     setBannerUploading(false);
@@ -190,7 +214,6 @@ export default function ProfilePage() {
       .update({
         username: editUsername,
         bio: editBio,
-
         avatar_url: avatarUrl,
         banner_url: bannerUrl,
       })
@@ -198,16 +221,13 @@ export default function ProfilePage() {
 
     if (error) {
       alert(error.message);
-
       return;
     }
 
     setProfile({
       ...profile,
-
       username: editUsername,
       bio: editBio,
-
       avatar_url: avatarUrl,
       banner_url: bannerUrl,
     });
@@ -222,24 +242,17 @@ export default function ProfilePage() {
     return (
       <main>
         <Header />
-
         <p className="org-loading">Loading profile...</p>
-
         <Footer />
       </main>
     );
   }
 
-  // =========================
-  // NOT FOUND
-  // =========================
   if (!profile) {
     return (
       <main>
         <Header />
-
         <p className="org-loading">Profile not found.</p>
-
         <Footer />
       </main>
     );
@@ -249,9 +262,6 @@ export default function ProfilePage() {
     <main>
       <Header />
 
-      {/* =========================
-          PROFILE HERO
-      ========================= */}
       <section className="profile-page">
         <div className="profile-banner">
           <img
@@ -279,7 +289,6 @@ export default function ProfilePage() {
           />
 
           <h1>{profile.username || "Unnamed User"}</h1>
-
           <p className="profile-bio">{profile.bio || "No bio yet."}</p>
 
           {isOwner && (
@@ -293,29 +302,18 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* =========================
-          STATS
-      ========================= */}
       <section className="profile-stats">
         <div className="profile-stat-box">
           <h2>{events.length}</h2>
-
           <p>Events Made</p>
         </div>
       </section>
 
-      {/* =========================
-          EVENTS
-      ========================= */}
       <section className="profile-section">
         <h2>Events Created</h2>
-
         <EventsGrid events={events} />
       </section>
 
-      {/* =========================
-          EDIT MODAL
-      ========================= */}
       {editing && (
         <div className="edit-modal-overlay">
           <div className="edit-modal">
@@ -334,23 +332,16 @@ export default function ProfilePage() {
               placeholder="Bio"
             />
 
-            {/* AVATAR */}
             <label>Avatar Upload</label>
-
             <input type="file" accept="image/*" onChange={handleAvatarUpload} />
-
             {avatarUploading && <p>Uploading avatar...</p>}
 
-            {/* BANNER */}
             <label>Banner Upload</label>
-
             <input type="file" accept="image/*" onChange={handleBannerUpload} />
-
             {bannerUploading && <p>Uploading banner...</p>}
 
             <div className="edit-modal-buttons">
               <button onClick={saveProfile}>Save</button>
-
               <button onClick={() => setEditing(false)}>Cancel</button>
             </div>
           </div>

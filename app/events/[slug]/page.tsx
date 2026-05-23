@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import imageCompression from "browser-image-compression";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -86,9 +87,6 @@ export default function EventPage() {
 
       setLoading(true);
 
-      // =========================
-      // GET USER
-      // =========================
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -97,20 +95,15 @@ export default function EventPage() {
 
       if (user) {
         admin = await checkAdmin(user.id);
-
         setIsAdmin(admin);
       }
 
-      // =========================
-      // GET EVENT
-      // =========================
       let { data, error } = await supabase
         .from("events")
         .select("*")
         .eq("slug", slug)
         .single();
 
-      // fallback
       if (error || !data) {
         const fallback = await supabase
           .from("events")
@@ -123,51 +116,28 @@ export default function EventPage() {
 
       if (!data) {
         setLoading(false);
-
         return;
       }
 
-      // =========================
-      // OWNER CHECK
-      // =========================
       if (user && (data.created_by === user.id || data.owner_id === user.id)) {
         setIsOwner(true);
       }
 
-      // =========================
-      // SET EVENT
-      // =========================
       setEvent(data);
 
-      // =========================
-      // EDIT DEFAULTS
-      // =========================
       setEditTitle(data.title || "");
-
       setEditDescription(data.description || "");
-
       setEditDate(data.event_date || "");
-
       setEditTags(Array.isArray(data.tags) ? data.tags.join(", ") : "");
-
       setImageUrl(data.image_url || "");
 
-      // =========================
-      // HYPE COUNT
-      // =========================
       const { count } = await supabase
         .from("event_hype")
-        .select("*", {
-          count: "exact",
-          head: true,
-        })
+        .select("*", { count: "exact", head: true })
         .eq("event_id", data.id);
 
       setHypeCount(count || 0);
 
-      // =========================
-      // USER HYPED?
-      // =========================
       if (user) {
         const { data: hypeData } = await supabase
           .from("event_hype")
@@ -186,20 +156,40 @@ export default function EventPage() {
   }, [slug]);
 
   // =========================
+  // IMAGE LIMIT SETTINGS
+  // =========================
+  const MAX_FILE_SIZE_MB = 2;
+
+  async function compressIfNeeded(file: File) {
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+      };
+
+      return await imageCompression(file, options);
+    }
+
+    return file;
+  }
+
+  // =========================
   // IMAGE UPLOAD
   // =========================
   async function uploadImage(file: File) {
-    const fileExt = file.name.split(".").pop();
+    const compressedFile = await compressIfNeeded(file);
+
+    const fileExt = compressedFile.name.split(".").pop();
 
     const fileName = `events/${Date.now()}-${Math.random()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("events")
-      .upload(fileName, file);
+      .upload(fileName, compressedFile);
 
     if (error) {
       console.error(error);
-
       return null;
     }
 
@@ -215,6 +205,12 @@ export default function EventPage() {
     const file = e.target.files?.[0];
 
     if (!file) return;
+
+    // HARD LIMIT (prevents abuse)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image too large (max 5MB before compression)");
+      return;
+    }
 
     setImageUploading(true);
 
@@ -237,13 +233,9 @@ export default function EventPage() {
       .from("events")
       .update({
         title: editTitle,
-
         description: editDescription,
-
         event_date: editDate,
-
         image_url: imageUrl,
-
         tags: editTags
           .split(",")
           .map((tag) => tag.trim())
@@ -253,21 +245,15 @@ export default function EventPage() {
 
     if (error) {
       alert(error.message);
-
       return;
     }
 
     setEvent({
       ...event,
-
       title: editTitle,
-
       description: editDescription,
-
       event_date: editDate,
-
       image_url: imageUrl,
-
       tags: editTags
         .split(",")
         .map((tag) => tag.trim())
@@ -291,7 +277,6 @@ export default function EventPage() {
         .eq("user_id", user.id);
 
       setHasHyped(false);
-
       setHypeCount((prev) => prev - 1);
     } else {
       const { error } = await supabase.from("event_hype").insert({
@@ -301,7 +286,6 @@ export default function EventPage() {
 
       if (!error) {
         setHasHyped(true);
-
         setHypeCount((prev) => prev + 1);
       }
     }
@@ -321,29 +305,20 @@ export default function EventPage() {
   }
 
   // =========================
-  // IMAGE
+  // IMAGE SAFE DISPLAY
   // =========================
   function getImage(url: string) {
     if (!url || !url.startsWith("http")) {
       return "/images/temp-event-image.png";
     }
-
     return url;
   }
 
   // =========================
   // LOADING
   // =========================
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
-  // =========================
-  // NOT FOUND
-  // =========================
-  if (!event) {
-    return <p>Event not found</p>;
-  }
+  if (loading) return <p>Loading...</p>;
+  if (!event) return <p>Event not found</p>;
 
   return (
     <main>
@@ -370,7 +345,6 @@ export default function EventPage() {
               </p>
             )}
 
-            {/* HYPE */}
             <div className="event-hype-section">
               <p className="event-hype-count">{hypeCount} hype</p>
 
@@ -383,17 +357,14 @@ export default function EventPage() {
               </button>
             </div>
 
-            {/* DESCRIPTION */}
             <p className="event-description">{event.description}</p>
 
-            {/* TAGS */}
             <div className="event-tags">
               {parsedTags.map((t, i) => (
                 <span key={i}>#{t}</span>
               ))}
             </div>
 
-            {/* EDIT BUTTON */}
             {(isAdmin || isOwner) && (
               <button
                 className="edit-profile-btn"
@@ -406,7 +377,6 @@ export default function EventPage() {
         </div>
       </section>
 
-      {/* EDIT MODAL */}
       {editing && (
         <div className="edit-modal-overlay">
           <div className="edit-modal">
@@ -416,13 +386,11 @@ export default function EventPage() {
               type="text"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="Event Title"
             />
 
             <textarea
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="Description"
             />
 
             <input
@@ -431,7 +399,6 @@ export default function EventPage() {
               onChange={(e) => setEditDate(e.target.value)}
             />
 
-            {/* IMAGE */}
             <label>Event Image</label>
 
             <input type="file" accept="image/*" onChange={handleImageUpload} />
@@ -442,12 +409,10 @@ export default function EventPage() {
               type="text"
               value={editTags}
               onChange={(e) => setEditTags(e.target.value)}
-              placeholder="Tags"
             />
 
             <div className="edit-modal-buttons">
               <button onClick={saveEvent}>Save</button>
-
               <button onClick={() => setEditing(false)}>Cancel</button>
             </div>
           </div>

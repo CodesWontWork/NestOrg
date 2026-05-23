@@ -25,6 +25,7 @@ export default function EventCreatePage() {
   // SESSION
   // =========================
   const [session, setSession] = useState<Session | null>(null);
+
   const user = session?.user ?? null;
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function EventCreatePage() {
   // USER ORG
   // =========================
   const [userOrg, setUserOrg] = useState<any>(null);
+
   const [checkingOrg, setCheckingOrg] = useState(true);
 
   useEffect(() => {
@@ -61,7 +63,9 @@ export default function EventCreatePage() {
 
       if (error) {
         console.error(error);
+
         setCheckingOrg(false);
+
         return;
       }
 
@@ -81,13 +85,15 @@ export default function EventCreatePage() {
   // FORM STATE
   // =========================
   const [title, setTitle] = useState("");
+
   const [description, setDescription] = useState("");
 
   const [eventDate, setEventDate] = useState("");
+
   const [tags, setTags] = useState("");
 
   // =========================
-  // IMAGE UPLOAD
+  // IMAGE
   // =========================
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -97,7 +103,58 @@ export default function EventCreatePage() {
   // STATUS
   // =========================
   const [loading, setLoading] = useState(false);
+
   const [message, setMessage] = useState("");
+
+  // =========================
+  // COMPRESS IMAGE
+  // =========================
+  async function compressImage(file: File) {
+    return new Promise<File>((resolve) => {
+      const image = new Image();
+
+      image.src = URL.createObjectURL(file);
+
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+
+        const MAX_WIDTH = 1280;
+
+        const scaleSize = MAX_WIDTH / image.width;
+
+        canvas.width = image.width > MAX_WIDTH ? MAX_WIDTH : image.width;
+
+        canvas.height =
+          image.width > MAX_WIDTH ? image.height * scaleSize : image.height;
+
+        const ctx = canvas.getContext("2d");
+
+        ctx?.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+
+              return;
+            }
+
+            const compressedFile = new File(
+              [blob],
+              file.name.replace(/\.\w+$/, ".jpg"),
+              {
+                type: "image/jpeg",
+              },
+            );
+
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          0.7,
+        );
+      };
+    });
+  }
 
   // =========================
   // CREATE EVENT
@@ -107,25 +164,30 @@ export default function EventCreatePage() {
 
     if (!user) {
       setMessage("You must be logged in.");
+
       return;
     }
 
     if (!userOrg) {
       setMessage("No organization assigned to your account.");
+
       return;
     }
 
     if (!eventDate) {
       setMessage("Please select an event date.");
+
       return;
     }
 
     if (eventDate < today) {
       setMessage("You cannot create an event with a past date.");
+
       return;
     }
 
     setLoading(true);
+
     setMessage("");
 
     // =========================
@@ -144,27 +206,62 @@ export default function EventCreatePage() {
     let uploadedImageUrl = "";
 
     if (imageFile) {
-      const fileExt = imageFile.name.split(".").pop();
+      // =========================
+      // FILE LIMITS
+      // =========================
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
-      const fileName = `${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2)}.${fileExt}`;
+      if (!allowedTypes.includes(imageFile.type)) {
+        setMessage("Only JPG, PNG, and WEBP images are allowed.");
 
-      const filePath = `event-images/${fileName}`;
-
-      // upload
-      const { error: uploadError } = await supabase.storage
-        .from("events")
-        .upload(filePath, imageFile);
-
-      if (uploadError) {
-        console.error(uploadError);
-        setMessage(uploadError.message);
         setLoading(false);
+
         return;
       }
 
-      // get public url
+      // 5MB LIMIT
+      if (imageFile.size > 5 * 1024 * 1024) {
+        setMessage("Image must be under 5MB.");
+
+        setLoading(false);
+
+        return;
+      }
+
+      // =========================
+      // COMPRESS IMAGE
+      // =========================
+      const compressedImage = await compressImage(imageFile);
+
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2)}.jpg`;
+
+      const filePath = `event-images/${fileName}`;
+
+      // =========================
+      // UPLOAD
+      // =========================
+      const { error: uploadError } = await supabase.storage
+        .from("events")
+        .upload(filePath, compressedImage, {
+          cacheControl: "31536000",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error(uploadError);
+
+        setMessage(uploadError.message);
+
+        setLoading(false);
+
+        return;
+      }
+
+      // =========================
+      // GET URL
+      // =========================
       const { data } = supabase.storage.from("events").getPublicUrl(filePath);
 
       uploadedImageUrl = data.publicUrl;
@@ -175,16 +272,19 @@ export default function EventCreatePage() {
     // =========================
     const { error } = await supabase.from("events").insert({
       title,
+
       description,
 
       image_url: uploadedImageUrl,
 
       event_date: eventDate,
+
       tags: tagArray,
 
       slug,
 
       org_id: userOrg.id,
+
       org_name: userOrg.name,
 
       created_by: user.id,
@@ -196,17 +296,22 @@ export default function EventCreatePage() {
 
     if (error) {
       console.error(error);
+
       setMessage(error.message);
     } else {
       setMessage("Event submitted for approval!");
 
+      // RESET
       setTitle("");
+
       setDescription("");
 
       setEventDate("");
+
       setTags("");
 
       setImageFile(null);
+
       setImagePreview("");
     }
 
@@ -248,23 +353,34 @@ export default function EventCreatePage() {
             required
           />
 
-          {/* IMAGE UPLOAD */}
+          {/* IMAGE */}
           <div className="event-upload-box">
             <label>Event Image</label>
 
             <input
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,.webp"
               onChange={(e) => {
                 const file = e.target.files?.[0];
 
                 if (!file) return;
+
+                // =========================
+                // FILE LIMIT
+                // =========================
+                if (file.size > 5 * 1024 * 1024) {
+                  setMessage("Image must be under 5MB.");
+
+                  return;
+                }
 
                 setImageFile(file);
 
                 setImagePreview(URL.createObjectURL(file));
               }}
             />
+
+            <p className="upload-note">Max size: 5MB • JPG, PNG, WEBP only</p>
 
             {imagePreview && (
               <img

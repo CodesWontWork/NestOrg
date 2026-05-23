@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import imageCompression from "browser-image-compression";
+
 import { supabase } from "@/lib/supabase";
 
 import Header from "@/components/Header";
@@ -22,11 +24,13 @@ export default function OrganizationPage() {
   // STATES
   // =========================
   const [org, setOrg] = useState<any>(null);
+
   const [events, setEvents] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
 
   const [isAdmin, setIsAdmin] = useState(false);
+
   const [isOwner, setIsOwner] = useState(false);
 
   const [editing, setEditing] = useState(false);
@@ -35,13 +39,17 @@ export default function OrganizationPage() {
   // EDIT STATES
   // =========================
   const [editName, setEditName] = useState("");
+
   const [editDescription, setEditDescription] = useState("");
+
   const [editTags, setEditTags] = useState("");
 
   const [logoUrl, setLogoUrl] = useState("");
+
   const [bannerUrl, setBannerUrl] = useState("");
 
   const [logoUploading, setLogoUploading] = useState(false);
+
   const [bannerUploading, setBannerUploading] = useState(false);
 
   // =========================
@@ -64,9 +72,6 @@ export default function OrganizationPage() {
     async function fetchOrg() {
       setLoading(true);
 
-      // =========================
-      // GET USER
-      // =========================
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -95,12 +100,6 @@ export default function OrganizationPage() {
 
         return;
       }
-
-      console.log("ORG DATA:", orgData);
-
-      console.log("CURRENT USER:", user?.id);
-
-      console.log("OWNER ID:", orgData.owner_id);
 
       // =========================
       // OWNER CHECK
@@ -162,16 +161,62 @@ export default function OrganizationPage() {
   }, [slug]);
 
   // =========================
+  // IMAGE COMPRESSION
+  // =========================
+  async function compressImage(file: File) {
+    const options = {
+      maxSizeMB: 0.7,
+      maxWidthOrHeight: 1280,
+      useWebWorker: true,
+    };
+
+    return await imageCompression(file, options);
+  }
+
+  // =========================
   // IMAGE UPLOAD
   // =========================
   async function uploadImage(file: File, bucket: string, folder: string) {
-    const fileExt = file.name.split(".").pop();
+    // =========================
+    // FILE TYPE LIMIT
+    // =========================
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
-    const fileName = `${folder}/${Date.now()}-${Math.random()}.${fileExt}`;
+    if (!allowedTypes.includes(file.type)) {
+      alert("Only JPG, PNG, and WEBP are allowed.");
 
+      return null;
+    }
+
+    // =========================
+    // FILE SIZE LIMIT
+    // =========================
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be under 5MB.");
+
+      return null;
+    }
+
+    // =========================
+    // COMPRESS
+    // =========================
+    const compressedFile = await compressImage(file);
+
+    const fileExt = "jpg";
+
+    const fileName = `${folder}/${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2)}.${fileExt}`;
+
+    // =========================
+    // UPLOAD
+    // =========================
     const { error } = await supabase.storage
       .from(bucket)
-      .upload(fileName, file);
+      .upload(fileName, compressedFile, {
+        cacheControl: "31536000",
+        upsert: false,
+      });
 
     if (error) {
       console.error(error);
@@ -194,7 +239,20 @@ export default function OrganizationPage() {
 
     setLogoUploading(true);
 
-    const url = await uploadImage(file, "organizations", "logos");
+    // =========================
+    // COMPRESS FIRST
+    // =========================
+    const compressed = await compressImage(file);
+
+    // =========================
+    // PREVIEW COMPRESSED
+    // =========================
+    setLogoUrl(URL.createObjectURL(compressed));
+
+    // =========================
+    // UPLOAD
+    // =========================
+    const url = await uploadImage(compressed, "organizations", "logos");
 
     if (url) {
       setLogoUrl(url);
@@ -213,7 +271,20 @@ export default function OrganizationPage() {
 
     setBannerUploading(true);
 
-    const url = await uploadImage(file, "banners", "org-banners");
+    // =========================
+    // COMPRESS FIRST
+    // =========================
+    const compressed = await compressImage(file);
+
+    // =========================
+    // PREVIEW COMPRESSED
+    // =========================
+    setBannerUrl(URL.createObjectURL(compressed));
+
+    // =========================
+    // UPLOAD
+    // =========================
+    const url = await uploadImage(compressed, "banners", "org-banners");
 
     if (url) {
       setBannerUrl(url);
@@ -302,6 +373,10 @@ export default function OrganizationPage() {
           }
           alt="banner"
           className="org-banner"
+          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.src = "/images/default-banner.jpg";
+          }}
         />
 
         <div className="org-banner-overlay"></div>
@@ -315,6 +390,7 @@ export default function OrganizationPage() {
           }
           alt={org.name}
           className="org-page-logo"
+          loading="lazy"
           onError={(e) => {
             e.currentTarget.src = "/images/temp-org-image.png";
           }}
@@ -391,14 +467,26 @@ export default function OrganizationPage() {
             {/* LOGO */}
             <label>Logo Upload</label>
 
-            <input type="file" accept="image/*" onChange={handleLogoUpload} />
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp"
+              onChange={handleLogoUpload}
+            />
+
+            <p className="upload-note">Max size: 5MB • JPG, PNG, WEBP only</p>
 
             {logoUploading && <p>Uploading logo...</p>}
 
             {/* BANNER */}
             <label>Banner Upload</label>
 
-            <input type="file" accept="image/*" onChange={handleBannerUpload} />
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp"
+              onChange={handleBannerUpload}
+            />
+
+            <p className="upload-note">Max size: 5MB • JPG, PNG, WEBP only</p>
 
             {bannerUploading && <p>Uploading banner...</p>}
 

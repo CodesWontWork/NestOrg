@@ -335,6 +335,7 @@ header {
 }
 
 .event-description {
+  margin: auto;
   padding: 0 18px;
   font-size: 0.8rem;
   line-height: 1.4;
@@ -3162,4 +3163,19 @@ header {
 /* BANNER */
 .banner-preview {
   height: 220px;
+}
+
+.event-upload-preview {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-top: 10px;
+}
+
+.upload-note {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 6px;
 }
