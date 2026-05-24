@@ -94,9 +94,7 @@ export default function Header() {
 
           <div className="header-left-text">
             <h1>NestOrg</h1>
-            <p>
-              Your central hub for organizations at Cavite State University
-            </p>
+            <p>CvSU Organizations and Events Hub</p>
           </div>
         </div>
 
@@ -168,8 +166,7 @@ export default function Header() {
 
                 <Link
                   href={`/profile/${
-                    profile?.username ??
-                    user.email?.split("@")[0]
+                    profile?.username ?? user.email?.split("@")[0]
                   }`}
                 >
                   <img

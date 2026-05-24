@@ -7,13 +7,13 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function CreateOrganizationPage() {
-  // =========================
-  // SESSION
-  // =========================
+  // Store the current user session
   const [session, setSession] = useState<Session | null>(null);
 
+  // Get logged in user
   const user = session?.user ?? null;
 
+  // Listen for login/logout changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -28,36 +28,31 @@ export default function CreateOrganizationPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // =========================
-  // FORM STATE
-  // =========================
+  // Form input states
   const [orgName, setOrgName] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
 
-  // =========================
-  // IMAGE FILES
-  // =========================
+  // Store uploaded image files
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
 
+  // Store image preview URLs
   const [logoPreview, setLogoPreview] = useState("");
   const [bannerPreview, setBannerPreview] = useState("");
 
-  // =========================
-  // STATUS
-  // =========================
+  // Loading state while submitting
   const [loading, setLoading] = useState(false);
 
+  // Message popup text
   const [message, setMessage] = useState("");
 
+  // Message type styling
   const [messageType, setMessageType] = useState<"success" | "error">(
     "success",
   );
 
-  // =========================
-  // SLUG
-  // =========================
+  // Convert org name into URL slug
   function createSlug(text: string) {
     return text
       .toLowerCase()
@@ -66,9 +61,7 @@ export default function CreateOrganizationPage() {
       .replace(/\s+/g, "-");
   }
 
-  // =========================
-  // COMPRESS IMAGE
-  // =========================
+  // Compress uploaded image before upload
   async function compressImage(file: File): Promise<File> {
     return new Promise((resolve) => {
       const image = new Image();
@@ -78,18 +71,14 @@ export default function CreateOrganizationPage() {
       image.onload = () => {
         const canvas = document.createElement("canvas");
 
-        // =========================
-        // MAX SIZE
-        // =========================
+        // Maximum image size
         const MAX_WIDTH = 1200;
         const MAX_HEIGHT = 1200;
 
         let width = image.width;
         let height = image.height;
 
-        // =========================
-        // RESIZE
-        // =========================
+        // Resize large images
         if (width > MAX_WIDTH) {
           height *= MAX_WIDTH / width;
           width = MAX_WIDTH;
@@ -105,16 +94,16 @@ export default function CreateOrganizationPage() {
 
         const ctx = canvas.getContext("2d");
 
+        // Fallback if canvas fails
         if (!ctx) {
           resolve(file);
           return;
         }
 
+        // Draw resized image
         ctx.drawImage(image, 0, 0, width, height);
 
-        // =========================
-        // COMPRESS QUALITY
-        // =========================
+        // Convert image into compressed JPG
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -139,13 +128,9 @@ export default function CreateOrganizationPage() {
     });
   }
 
-  // =========================
-  // UPLOAD IMAGE
-  // =========================
+  // Upload image to Supabase storage
   async function uploadImage(file: File, bucket: string, folder: string) {
-    // =========================
-    // TYPE CHECK
-    // =========================
+    // Check if uploaded file is an image
     if (!file.type.startsWith("image/")) {
       setMessageType("error");
       setMessage("Only image files are allowed.");
@@ -153,9 +138,7 @@ export default function CreateOrganizationPage() {
       return null;
     }
 
-    // =========================
-    // ORIGINAL SIZE LIMIT
-    // =========================
+    // Limit original file size
     if (file.size > 10 * 1024 * 1024) {
       setMessageType("error");
       setMessage("Image must be below 10MB.");
@@ -163,14 +146,10 @@ export default function CreateOrganizationPage() {
       return null;
     }
 
-    // =========================
-    // COMPRESS IMAGE
-    // =========================
+    // Compress image before upload
     const compressedFile = await compressImage(file);
 
-    // =========================
-    // FINAL SIZE LIMIT
-    // =========================
+    // Limit compressed file size
     if (compressedFile.size > 2 * 1024 * 1024) {
       setMessageType("error");
       setMessage(
@@ -180,6 +159,7 @@ export default function CreateOrganizationPage() {
       return null;
     }
 
+    // Generate random image filename
     const fileExt = "jpg";
 
     const fileName = `${Date.now()}-${Math.random()
@@ -188,9 +168,7 @@ export default function CreateOrganizationPage() {
 
     const filePath = `${folder}/${fileName}`;
 
-    // =========================
-    // UPLOAD
-    // =========================
+    // Upload image to Supabase bucket
     const { error } = await supabase.storage
       .from(bucket)
       .upload(filePath, compressedFile, {
@@ -198,6 +176,7 @@ export default function CreateOrganizationPage() {
         upsert: false,
       });
 
+    // Show upload error
     if (error) {
       setMessageType("error");
       setMessage(error.message);
@@ -205,17 +184,17 @@ export default function CreateOrganizationPage() {
       return null;
     }
 
+    // Get uploaded image URL
     const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
     return data.publicUrl;
   }
 
-  // =========================
-  // CREATE ORG
-  // =========================
+  // Handle organization creation
   async function handleCreateOrg(e: React.FormEvent) {
     e.preventDefault();
 
+    // Prevent guests from creating orgs
     if (!user) {
       setMessageType("error");
 
@@ -227,17 +206,17 @@ export default function CreateOrganizationPage() {
     setLoading(true);
 
     try {
+      // Create URL slug
       const slug = createSlug(orgName);
 
-      // =========================
-      // CHECK DUPLICATE
-      // =========================
+      // Check for duplicate organization slug
       const { data: existingOrg } = await supabase
         .from("organizations")
         .select("id")
         .eq("slug", slug)
         .single();
 
+      // Stop duplicate org creation
       if (existingOrg) {
         setMessageType("error");
 
@@ -248,11 +227,10 @@ export default function CreateOrganizationPage() {
         return;
       }
 
-      // =========================
-      // LOGO UPLOAD
-      // =========================
+      // Store uploaded logo URL
       let uploadedLogoUrl = "";
 
+      // Upload logo image
       if (logoFile) {
         const url = await uploadImage(logoFile, "organizations", "logos");
 
@@ -264,11 +242,10 @@ export default function CreateOrganizationPage() {
         uploadedLogoUrl = url;
       }
 
-      // =========================
-      // BANNER UPLOAD
-      // =========================
+      // Store uploaded banner URL
       let uploadedBannerUrl = "";
 
+      // Upload banner image
       if (bannerFile) {
         const url = await uploadImage(bannerFile, "banners", "org-banners");
 
@@ -280,48 +257,39 @@ export default function CreateOrganizationPage() {
         uploadedBannerUrl = url;
       }
 
-      // =========================
-      // INSERT ORG
-      // =========================
+      // Insert organization into database
       const { error } = await supabase.from("organizations").insert([
         {
           name: orgName,
-
           slug,
-
           description,
-
           logo_url: uploadedLogoUrl,
-
           banner_url: uploadedBannerUrl,
-
           tags: tags
             .split(",")
             .map((tag) => tag.trim())
             .filter((tag) => tag !== ""),
-
           created_by: user.id,
-
           owner_id: user.id,
-
           approved: false,
-
           created_at: new Date().toISOString(),
         },
       ]);
 
+      // Show database error
       if (error) {
         setMessageType("error");
 
         setMessage(error.message);
       } else {
+        // Show success message
         setMessageType("success");
 
         setMessage(
           "Organization submitted successfully! Waiting for admin approval.",
         );
 
-        // RESET
+        // Reset all form inputs
         setOrgName("");
         setDescription("");
         setTags("");
@@ -333,6 +301,7 @@ export default function CreateOrganizationPage() {
         setBannerPreview("");
       }
     } catch (err) {
+      // Catch unexpected errors
       setMessageType("error");
 
       setMessage("Something went wrong.");
@@ -353,7 +322,7 @@ export default function CreateOrganizationPage() {
             Submit your organization for approval.
           </p>
 
-          {/* NAME */}
+          {/* Organization name input */}
           <input
             type="text"
             placeholder="Organization Name"
@@ -362,7 +331,7 @@ export default function CreateOrganizationPage() {
             required
           />
 
-          {/* DESCRIPTION */}
+          {/* Organization description input */}
           <textarea
             placeholder="Organization Description"
             value={description}
@@ -370,7 +339,7 @@ export default function CreateOrganizationPage() {
             required
           />
 
-          {/* LOGO */}
+          {/* Logo upload section */}
           <div className="org-upload-box">
             <label>Organization Logo</label>
 
@@ -382,11 +351,10 @@ export default function CreateOrganizationPage() {
 
                 if (!file) return;
 
-                // =========================
-                // LIMIT TYPES
-                // =========================
+                // Allowed image types
                 const allowed = ["image/png", "image/jpeg", "image/webp"];
 
+                // Reject unsupported file types
                 if (!allowed.includes(file.type)) {
                   setMessageType("error");
                   setMessage("Only PNG, JPG, and WEBP images are allowed.");
@@ -394,9 +362,7 @@ export default function CreateOrganizationPage() {
                   return;
                 }
 
-                // =========================
-                // LIMIT SIZE
-                // =========================
+                // Reject oversized images
                 if (file.size > 10 * 1024 * 1024) {
                   setMessageType("error");
                   setMessage("Image must be below 10MB.");
@@ -404,12 +370,15 @@ export default function CreateOrganizationPage() {
                   return;
                 }
 
+                // Save selected logo file
                 setLogoFile(file);
 
+                // Generate logo preview
                 setLogoPreview(URL.createObjectURL(file));
               }}
             />
 
+            {/* Show logo preview */}
             {logoPreview && (
               <img
                 src={logoPreview}
@@ -419,7 +388,7 @@ export default function CreateOrganizationPage() {
             )}
           </div>
 
-          {/* BANNER */}
+          {/* Banner upload section */}
           <div className="org-upload-box">
             <label>Organization Banner</label>
 
@@ -431,8 +400,10 @@ export default function CreateOrganizationPage() {
 
                 if (!file) return;
 
+                // Allowed image types
                 const allowed = ["image/png", "image/jpeg", "image/webp"];
 
+                // Reject unsupported file types
                 if (!allowed.includes(file.type)) {
                   setMessageType("error");
                   setMessage("Only PNG, JPG, and WEBP images are allowed.");
@@ -440,6 +411,7 @@ export default function CreateOrganizationPage() {
                   return;
                 }
 
+                // Reject oversized images
                 if (file.size > 10 * 1024 * 1024) {
                   setMessageType("error");
                   setMessage("Image must be below 10MB.");
@@ -447,12 +419,15 @@ export default function CreateOrganizationPage() {
                   return;
                 }
 
+                // Save selected banner file
                 setBannerFile(file);
 
+                // Generate banner preview
                 setBannerPreview(URL.createObjectURL(file));
               }}
             />
 
+            {/* Show banner preview */}
             {bannerPreview && (
               <img
                 src={bannerPreview}
@@ -462,7 +437,7 @@ export default function CreateOrganizationPage() {
             )}
           </div>
 
-          {/* TAGS */}
+          {/* Tags input */}
           <input
             type="text"
             placeholder="Tags (coding, gaming, arts)"
@@ -470,14 +445,14 @@ export default function CreateOrganizationPage() {
             onChange={(e) => setTags(e.target.value)}
           />
 
-          {/* SUBMIT */}
+          {/* Submit button */}
           <button type="submit" disabled={loading}>
             {loading ? "Submitting..." : "Submit Organization"}
           </button>
         </form>
       </section>
 
-      {/* MESSAGE */}
+      {/* Popup message */}
       {message && (
         <div className="auth-message">
           <div className="auth-message-box">

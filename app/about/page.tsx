@@ -1,14 +1,37 @@
 "use client";
 
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { useEffect } from "react";
 import Link from "next/link";
 
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
 export default function Layout() {
+  // Scroll-reveal: watches .reveal/.reveal-left/.reveal-right elements
+  // and adds .visible when they enter the viewport
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) e.target.classList.add("visible");
+        });
+      },
+      { threshold: 0.15 },
+    );
+
+    document
+      .querySelectorAll(".reveal, .reveal-left, .reveal-right")
+      .forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <main>
+      {/* Top navigation */}
       <Header />
 
+      {/* Hero section — title and subtitle animate via CSS fadeUp keyframe */}
       <section className="about-hero">
         <h1 className="about-title">About Us</h1>
 
@@ -19,8 +42,10 @@ export default function Layout() {
         </p>
       </section>
 
+      {/* Main about content */}
       <section className="about-container">
-        <div className="about-card mission-card">
+        {/* Mission card */}
+        <div className="about-card mission-card reveal">
           <h2>Our Mission</h2>
 
           <p>
@@ -30,11 +55,13 @@ export default function Layout() {
           </p>
         </div>
 
+        {/* Features / services section */}
         <div className="offer-section">
-          <h2 className="offer-title">What We Offer</h2>
+          <h2 className="offer-title reveal">What We Offer</h2>
 
           <div className="offer-grid">
-            <div className="offer-card">
+            {/* Organization feature */}
+            <div className="offer-card reveal reveal-delay-1">
               <div className="offer-icon"></div>
 
               <h3>Student Organizations</h3>
@@ -45,7 +72,8 @@ export default function Layout() {
               </p>
             </div>
 
-            <div className="offer-card">
+            {/* Events feature */}
+            <div className="offer-card reveal reveal-delay-2">
               <div className="offer-icon"></div>
 
               <h3>Campus Events</h3>
@@ -56,7 +84,8 @@ export default function Layout() {
               </p>
             </div>
 
-            <div className="offer-card">
+            {/* Volunteer opportunities feature */}
+            <div className="offer-card reveal reveal-delay-3">
               <div className="offer-icon"></div>
 
               <h3>Volunteer Opportunities</h3>
@@ -69,7 +98,8 @@ export default function Layout() {
           </div>
         </div>
 
-        <div className="about-cta">
+        {/* Call to action section */}
+        <div className="about-cta reveal">
           <h2>Get Involved</h2>
 
           <p>
@@ -77,12 +107,14 @@ export default function Layout() {
             available to you at Cavite State University.
           </p>
 
+          {/* Redirects users to organizations page */}
           <Link href="/orgs" className="about-btn">
             Explore Organizations
           </Link>
         </div>
       </section>
 
+      {/* Footer */}
       <Footer />
     </main>
   );

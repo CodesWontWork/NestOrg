@@ -1,14 +1,11 @@
 import { supabase } from "@/lib/supabase";
 
+// Adds extra data to event objects
 export async function enrichEvents(events: any[]) {
-  // =========================
-  // ADD HYPE COUNTS
-  // =========================
+  // Add hype count and creator username
   const eventsWithHype = await Promise.all(
     events.map(async (event) => {
-      // =========================
-      // GET HYPE COUNT
-      // =========================
+      // Fetch total hype count for event
       const { count } = await supabase
         .from("event_hype")
         .select("*", {
@@ -17,11 +14,10 @@ export async function enrichEvents(events: any[]) {
         })
         .eq("event_id", event.id);
 
-      // =========================
-      // GET CREATOR USERNAME
-      // =========================
+      // Default creator username
       let creatorUsername = "";
 
+      // Fetch creator profile if creator exists
       if (event.created_by) {
         const { data: profile } = await supabase
           .from("profiles")
@@ -32,6 +28,7 @@ export async function enrichEvents(events: any[]) {
         creatorUsername = profile?.username || "unknown";
       }
 
+      // Return updated event object
       return {
         ...event,
 
@@ -42,5 +39,6 @@ export async function enrichEvents(events: any[]) {
     }),
   );
 
+  // Return enriched events
   return eventsWithHype;
 }

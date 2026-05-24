@@ -31,23 +31,28 @@ type Profile = {
 };
 
 export default function EventsPage() {
+  // Store logged in session
   const [session, setSession] = useState<Session | null>(null);
 
+  // Store all fetched events
   const [events, setEvents] = useState<Event[]>([]);
 
+  // Loading state while fetching data
   const [loading, setLoading] = useState(true);
 
+  // Error message state
   const [error, setError] = useState("");
 
+  // Search input state
   const [search, setSearch] = useState("");
 
+  // Selected sorting option
   const [sortBy, setSortBy] = useState("created");
 
+  // Sort direction state
   const [sortDirection, setSortDirection] = useState("desc");
 
-  // =========================
-  // SESSION
-  // =========================
+  // Listen for auth session changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -62,9 +67,7 @@ export default function EventsPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // =========================
-  // FETCH EVENTS
-  // =========================
+  // Fetch all approved events
   useEffect(() => {
     async function fetchEvents() {
       try {
@@ -72,24 +75,22 @@ export default function EventsPage() {
 
         setError("");
 
-        // =========================
-        // EVENTS QUERY
-        // =========================
+        // Get approved events from database
         const { data: eventsData, error: eventsError } = await supabase
           .from("events")
           .select(
             `
-              id,
-              title,
-              description,
-              image_url,
-              event_date,
-              tags,
-              created_at,
-              created_by,
-              slug,
-              org_name
-            `,
+            id,
+            title,
+            description,
+            image_url,
+            event_date,
+            tags,
+            created_at,
+            created_by,
+            slug,
+            org_name
+          `,
           )
           .eq("approved", true)
           .order("created_at", { ascending: false });
@@ -98,17 +99,19 @@ export default function EventsPage() {
           throw eventsError;
         }
 
-        // =========================
-        // CLEAN TAGS
-        // =========================
+        // Clean and format event data
         const cleanedEvents: Event[] = (eventsData || []).map(
           (event): Event => {
             let parsedTags: string[] = [];
 
             try {
+              // Handle tags if already array
               if (Array.isArray(event.tags)) {
                 parsedTags = event.tags as string[];
-              } else if (typeof event.tags === "string") {
+              }
+
+              // Handle tags if stored as JSON string
+              else if (typeof event.tags === "string") {
                 const parsed = JSON.parse(event.tags);
 
                 parsedTags = Array.isArray(parsed)
@@ -137,9 +140,7 @@ export default function EventsPage() {
           },
         );
 
-        // =========================
-        // USER IDS
-        // =========================
+        // Get all unique creator IDs
         const userIds = [
           ...new Set(
             cleanedEvents
@@ -150,11 +151,10 @@ export default function EventsPage() {
           ),
         ];
 
-        // =========================
-        // PROFILE MAP
-        // =========================
+        // Store user profiles by ID
         const profileMap: Record<string, Profile> = {};
 
+        // Fetch creator profiles
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
             .from("profiles")
@@ -166,22 +166,19 @@ export default function EventsPage() {
           });
         }
 
-        // =========================
-        // HYPE COUNTS
-        // =========================
+        // Fetch hype records
         const { data: hypeData } = await supabase
           .from("event_hype")
           .select("event_id");
 
+        // Store hype count per event
         const hypeMap: Record<string, number> = {};
 
         (hypeData || []).forEach((hype: { event_id: string }) => {
           hypeMap[hype.event_id] = (hypeMap[hype.event_id] || 0) + 1;
         });
 
-        // =========================
-        // MERGE EVERYTHING
-        // =========================
+        // Merge profile data and hype counts into events
         const enrichedEvents: Event[] = cleanedEvents.map((event): Event => {
           const profile = event.created_by
             ? profileMap[event.created_by]
@@ -198,6 +195,7 @@ export default function EventsPage() {
           };
         });
 
+        // Save final events
         setEvents(enrichedEvents);
       } catch (err: unknown) {
         console.error(err);
@@ -215,17 +213,13 @@ export default function EventsPage() {
     fetchEvents();
   }, []);
 
-  // =========================
-  // FILTER + SORT
-  // =========================
+  // Filter and sort events
   const filteredEvents: Event[] = useMemo(() => {
     const q = search.toLowerCase().trim();
 
     let filtered = [...events];
 
-    // =========================
-    // SEARCH
-    // =========================
+    // Search by title or tags
     if (q) {
       filtered = filtered.filter((event) => {
         const titleMatch = event.title.toLowerCase().includes(q);
@@ -239,23 +233,31 @@ export default function EventsPage() {
       });
     }
 
-    // =========================
-    // SORT
-    // =========================
+    // Sort events
     filtered.sort((a, b) => {
       let comparison = 0;
 
+      // Sort alphabetically
       if (sortBy === "alphabetical") {
         comparison = a.title.localeCompare(b.title);
-      } else if (sortBy === "event_date") {
+      }
+
+      // Sort by event date
+      else if (sortBy === "event_date") {
         comparison =
           new Date(a.event_date || 0).getTime() -
           new Date(b.event_date || 0).getTime();
-      } else if (sortBy === "created") {
+      }
+
+      // Sort by created date
+      else if (sortBy === "created") {
         comparison =
           new Date(a.created_at || 0).getTime() -
           new Date(b.created_at || 0).getTime();
-      } else if (sortBy === "popularity") {
+      }
+
+      // Sort by hype count
+      else if (sortBy === "popularity") {
         comparison = (a.hype_count || 0) - (b.hype_count || 0);
       }
 
@@ -269,6 +271,7 @@ export default function EventsPage() {
     <main>
       <Header />
 
+      {/* Search and sort controls */}
       <section className="events-search-container">
         <input
           className="events-search-input"
@@ -278,6 +281,7 @@ export default function EventsPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
+        {/* Sort type dropdown */}
         <select
           className="events-sort-select"
           value={sortBy}
@@ -292,6 +296,7 @@ export default function EventsPage() {
           <option value="popularity">Popularity</option>
         </select>
 
+        {/* Sort direction dropdown */}
         <select
           className="events-sort-select"
           value={sortDirection}
@@ -302,17 +307,22 @@ export default function EventsPage() {
           <option value="asc">Ascending</option>
         </select>
 
+        {/* Button to create new event */}
         <Link href="/events/create" className="events-add-btn">
           + Add Event
         </Link>
       </section>
 
+      {/* Events container */}
       <div id="Events-grid-box">
+        {/* Loading message */}
         {loading && <p>Loading events...</p>}
 
+        {/* Error message */}
         {!loading && error && <p>{error}</p>}
 
-        {!loading && !error && <EventsGrid events={filteredEvents as any} />}
+        {/* Display event grid */}
+        {!loading && !error && <EventsGrid events={filteredEvents as any[]} />}
       </div>
 
       <Footer />

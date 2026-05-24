@@ -7,9 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function EventCreatePage() {
-  // =========================
-  // SLUG
-  // =========================
+  // Create a clean URL slug from event title
   function generateSlug(title: string) {
     return title
       .toLowerCase()
@@ -19,15 +17,16 @@ export default function EventCreatePage() {
       .replace(/-+/g, "-");
   }
 
+  // Get today's date for date validation
   const today = new Date().toISOString().split("T")[0];
 
-  // =========================
-  // SESSION
-  // =========================
+  // Store current logged in session
   const [session, setSession] = useState<Session | null>(null);
 
+  // Store logged in user
   const user = session?.user ?? null;
 
+  // Listen for login/logout changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -42,13 +41,13 @@ export default function EventCreatePage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // =========================
-  // USER ORG
-  // =========================
+  // Store organization linked to user
   const [userOrg, setUserOrg] = useState<any>(null);
 
+  // Loading state while checking organization
   const [checkingOrg, setCheckingOrg] = useState(true);
 
+  // Fetch user's organization
   useEffect(() => {
     async function fetchUserOrg() {
       if (!user) {
@@ -56,6 +55,7 @@ export default function EventCreatePage() {
         return;
       }
 
+      // Get organizations owned by user
       const { data, error } = await supabase
         .from("organizations")
         .select("*")
@@ -69,6 +69,7 @@ export default function EventCreatePage() {
         return;
       }
 
+      // Store first organization found
       if (data && data.length > 0) {
         setUserOrg(data[0]);
       } else {
@@ -81,34 +82,31 @@ export default function EventCreatePage() {
     fetchUserOrg();
   }, [user]);
 
-  // =========================
-  // FORM STATE
-  // =========================
+  // Store event title
   const [title, setTitle] = useState("");
 
+  // Store event description
   const [description, setDescription] = useState("");
 
+  // Store selected event date
   const [eventDate, setEventDate] = useState("");
 
+  // Store event tags
   const [tags, setTags] = useState("");
 
-  // =========================
-  // IMAGE
-  // =========================
+  // Store uploaded image file
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  // Store image preview URL
   const [imagePreview, setImagePreview] = useState("");
 
-  // =========================
-  // STATUS
-  // =========================
+  // Loading state while submitting form
   const [loading, setLoading] = useState(false);
 
+  // Store success/error messages
   const [message, setMessage] = useState("");
 
-  // =========================
-  // COMPRESS IMAGE
-  // =========================
+  // Compress uploaded image before upload
   async function compressImage(file: File) {
     return new Promise<File>((resolve) => {
       const image = new Image();
@@ -118,19 +116,25 @@ export default function EventCreatePage() {
       image.onload = () => {
         const canvas = document.createElement("canvas");
 
+        // Maximum image width
         const MAX_WIDTH = 1280;
 
+        // Calculate resize ratio
         const scaleSize = MAX_WIDTH / image.width;
 
+        // Resize width if too large
         canvas.width = image.width > MAX_WIDTH ? MAX_WIDTH : image.width;
 
+        // Resize height while keeping ratio
         canvas.height =
           image.width > MAX_WIDTH ? image.height * scaleSize : image.height;
 
         const ctx = canvas.getContext("2d");
 
+        // Draw image on canvas
         ctx?.drawImage(image, 0, 0, canvas.width, canvas.height);
 
+        // Convert canvas into compressed JPG
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -156,30 +160,32 @@ export default function EventCreatePage() {
     });
   }
 
-  // =========================
-  // CREATE EVENT
-  // =========================
+  // Handle event creation
   async function handleCreateEvent(e: React.FormEvent) {
     e.preventDefault();
 
+    // Check if user is logged in
     if (!user) {
       setMessage("You must be logged in.");
 
       return;
     }
 
+    // Check if user has an organization
     if (!userOrg) {
       setMessage("No organization assigned to your account.");
 
       return;
     }
 
+    // Check if date is selected
     if (!eventDate) {
       setMessage("Please select an event date.");
 
       return;
     }
 
+    // Prevent past dates
     if (eventDate < today) {
       setMessage("You cannot create an event with a past date.");
 
@@ -190,27 +196,24 @@ export default function EventCreatePage() {
 
     setMessage("");
 
-    // =========================
-    // TAGS
-    // =========================
+    // Convert tags string into array
     const tagArray = tags
       .split(",")
       .map((tag) => tag.trim())
       .filter((tag) => tag !== "");
 
+    // Generate event slug
     const slug = generateSlug(title);
 
-    // =========================
-    // IMAGE UPLOAD
-    // =========================
+    // Store uploaded image URL
     let uploadedImageUrl = "";
 
+    // Upload image if selected
     if (imageFile) {
-      // =========================
-      // FILE LIMITS
-      // =========================
+      // Allowed image formats
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
+      // Validate file type
       if (!allowedTypes.includes(imageFile.type)) {
         setMessage("Only JPG, PNG, and WEBP images are allowed.");
 
@@ -219,7 +222,7 @@ export default function EventCreatePage() {
         return;
       }
 
-      // 5MB LIMIT
+      // Validate file size
       if (imageFile.size > 5 * 1024 * 1024) {
         setMessage("Image must be under 5MB.");
 
@@ -228,20 +231,18 @@ export default function EventCreatePage() {
         return;
       }
 
-      // =========================
-      // COMPRESS IMAGE
-      // =========================
+      // Compress image before upload
       const compressedImage = await compressImage(imageFile);
 
+      // Generate unique file name
       const fileName = `${Date.now()}-${Math.random()
         .toString(36)
         .substring(2)}.jpg`;
 
+      // Full upload path
       const filePath = `event-images/${fileName}`;
 
-      // =========================
-      // UPLOAD
-      // =========================
+      // Upload image to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from("events")
         .upload(filePath, compressedImage, {
@@ -249,6 +250,7 @@ export default function EventCreatePage() {
           upsert: false,
         });
 
+      // Handle upload error
       if (uploadError) {
         console.error(uploadError);
 
@@ -259,17 +261,13 @@ export default function EventCreatePage() {
         return;
       }
 
-      // =========================
-      // GET URL
-      // =========================
+      // Get public image URL
       const { data } = supabase.storage.from("events").getPublicUrl(filePath);
 
       uploadedImageUrl = data.publicUrl;
     }
 
-    // =========================
-    // INSERT EVENT
-    // =========================
+    // Insert event into database
     const { error } = await supabase.from("events").insert({
       title,
 
@@ -294,6 +292,7 @@ export default function EventCreatePage() {
       created_at: new Date().toISOString(),
     });
 
+    // Handle database errors
     if (error) {
       console.error(error);
 
@@ -301,7 +300,7 @@ export default function EventCreatePage() {
     } else {
       setMessage("Event submitted for approval!");
 
-      // RESET
+      // Reset form after success
       setTitle("");
 
       setDescription("");
@@ -322,10 +321,12 @@ export default function EventCreatePage() {
     <main>
       <Header />
 
+      {/* Event creation form */}
       <section className="event-create-section">
         <form className="event-create-form" onSubmit={handleCreateEvent}>
           <h1>Create Event</h1>
 
+          {/* Show organization status */}
           {checkingOrg ? (
             <p className="event-org-display">Checking organization...</p>
           ) : userOrg ? (
@@ -336,7 +337,7 @@ export default function EventCreatePage() {
             </p>
           )}
 
-          {/* TITLE */}
+          {/* Event title input */}
           <input
             type="text"
             placeholder="Event Title"
@@ -345,7 +346,7 @@ export default function EventCreatePage() {
             required
           />
 
-          {/* DESCRIPTION */}
+          {/* Event description input */}
           <textarea
             placeholder="Event Description"
             value={description}
@@ -353,7 +354,7 @@ export default function EventCreatePage() {
             required
           />
 
-          {/* IMAGE */}
+          {/* Event image upload */}
           <div className="event-upload-box">
             <label>Event Image</label>
 
@@ -365,23 +366,24 @@ export default function EventCreatePage() {
 
                 if (!file) return;
 
-                // =========================
-                // FILE LIMIT
-                // =========================
+                // Limit image size
                 if (file.size > 5 * 1024 * 1024) {
                   setMessage("Image must be under 5MB.");
 
                   return;
                 }
 
+                // Save selected file
                 setImageFile(file);
 
+                // Create preview image
                 setImagePreview(URL.createObjectURL(file));
               }}
             />
 
             <p className="upload-note">Max size: 5MB • JPG, PNG, WEBP only</p>
 
+            {/* Show image preview */}
             {imagePreview && (
               <img
                 src={imagePreview}
@@ -391,7 +393,7 @@ export default function EventCreatePage() {
             )}
           </div>
 
-          {/* DATE */}
+          {/* Event date input */}
           <input
             type="date"
             value={eventDate}
@@ -400,7 +402,7 @@ export default function EventCreatePage() {
             required
           />
 
-          {/* TAGS */}
+          {/* Event tags input */}
           <input
             type="text"
             placeholder="Tags (example: seminar, technology, workshop)"
@@ -408,11 +410,12 @@ export default function EventCreatePage() {
             onChange={(e) => setTags(e.target.value)}
           />
 
-          {/* BUTTON */}
+          {/* Submit button */}
           <button disabled={loading}>
             {loading ? "Creating..." : "Create Event"}
           </button>
 
+          {/* Success or error message */}
           {message && <p className="event-create-message">{message}</p>}
         </form>
       </section>

@@ -10,20 +10,15 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function EventPage() {
-  // =========================
-  // PARAMS
-  // =========================
+  // Get slug from the URL
   const params = useParams();
-
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
-  // =========================
-  // SESSION
-  // =========================
+  // Store logged in session
   const [session, setSession] = useState<Session | null>(null);
-
   const user = session?.user ?? null;
 
+  // Check auth session on page load
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -38,53 +33,45 @@ export default function EventPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // =========================
-  // STATES
-  // =========================
+  // Main event data
   const [event, setEvent] = useState<any>(null);
-
   const [loading, setLoading] = useState(true);
 
+  // Hype system states
   const [hypeCount, setHypeCount] = useState(0);
   const [hasHyped, setHasHyped] = useState(false);
 
+  // Permission states
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
 
+  // Edit modal toggle
   const [editing, setEditing] = useState(false);
 
-  // =========================
-  // EDIT STATES
-  // =========================
+  // Edit form states
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editTags, setEditTags] = useState("");
 
+  // Image states
   const [imageUrl, setImageUrl] = useState("");
-
   const [imageUploading, setImageUploading] = useState(false);
 
-  // =========================
-  // ADMIN CHECK
-  // =========================
+  // Check if user is admin
   async function checkAdmin(userId: string) {
     const { data } = await supabase
       .from("profiles")
       .select("admin")
       .eq("id", userId)
       .single();
-
     return data?.admin === true;
   }
 
-  // =========================
-  // FETCH EVENT
-  // =========================
+  // Load event data
   useEffect(() => {
     async function fetchEvent() {
       if (!slug) return;
-
       setLoading(true);
 
       const {
@@ -92,7 +79,6 @@ export default function EventPage() {
       } = await supabase.auth.getUser();
 
       let admin = false;
-
       if (user) {
         admin = await checkAdmin(user.id);
         setIsAdmin(admin);
@@ -110,7 +96,6 @@ export default function EventPage() {
           .select("*")
           .eq("id", slug)
           .single();
-
         data = fallback.data;
       }
 
@@ -124,7 +109,6 @@ export default function EventPage() {
       }
 
       setEvent(data);
-
       setEditTitle(data.title || "");
       setEditDescription(data.description || "");
       setEditDate(data.event_date || "");
@@ -145,7 +129,6 @@ export default function EventPage() {
           .eq("event_id", data.id)
           .eq("user_id", user.id)
           .maybeSingle();
-
         setHasHyped(!!hypeData);
       }
 
@@ -155,33 +138,40 @@ export default function EventPage() {
     fetchEvent();
   }, [slug]);
 
-  // =========================
-  // IMAGE LIMIT SETTINGS
-  // =========================
+  // Scroll reveal observer
+  useEffect(() => {
+    if (loading) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) e.target.classList.add("visible");
+        });
+      },
+      { threshold: 0.12 },
+    );
+    document
+      .querySelectorAll(".reveal, .reveal-left, .reveal-right")
+      .forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [loading]);
+
+  // Image compression & upload
   const MAX_FILE_SIZE_MB = 2;
 
   async function compressIfNeeded(file: File) {
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      const options = {
+      return await imageCompression(file, {
         maxSizeMB: 1,
         maxWidthOrHeight: 1280,
         useWebWorker: true,
-      };
-
-      return await imageCompression(file, options);
+      });
     }
-
     return file;
   }
 
-  // =========================
-  // IMAGE UPLOAD
-  // =========================
   async function uploadImage(file: File) {
     const compressedFile = await compressIfNeeded(file);
-
     const fileExt = compressedFile.name.split(".").pop();
-
     const fileName = `events/${Date.now()}-${Math.random()}.${fileExt}`;
 
     const { error } = await supabase.storage
@@ -194,38 +184,25 @@ export default function EventPage() {
     }
 
     const { data } = supabase.storage.from("events").getPublicUrl(fileName);
-
     return data.publicUrl;
   }
 
-  // =========================
-  // HANDLE IMAGE
-  // =========================
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
-    // HARD LIMIT (prevents abuse)
     if (file.size > 5 * 1024 * 1024) {
       alert("Image too large (max 5MB before compression)");
       return;
     }
 
     setImageUploading(true);
-
     const url = await uploadImage(file);
-
-    if (url) {
-      setImageUrl(url);
-    }
-
+    if (url) setImageUrl(url);
     setImageUploading(false);
   }
 
-  // =========================
-  // SAVE EVENT
-  // =========================
+  // Save edited event
   async function saveEvent() {
     if (!event) return;
 
@@ -263,9 +240,7 @@ export default function EventPage() {
     setEditing(false);
   }
 
-  // =========================
-  // HYPE
-  // =========================
+  // Toggle hype
   async function toggleHype() {
     if (!user || !event) return;
 
@@ -275,7 +250,6 @@ export default function EventPage() {
         .delete()
         .eq("event_id", event.id)
         .eq("user_id", user.id);
-
       setHasHyped(false);
       setHypeCount((prev) => prev - 1);
     } else {
@@ -283,7 +257,6 @@ export default function EventPage() {
         event_id: event.id,
         user_id: user.id,
       });
-
       if (!error) {
         setHasHyped(true);
         setHypeCount((prev) => prev + 1);
@@ -291,11 +264,8 @@ export default function EventPage() {
     }
   }
 
-  // =========================
-  // TAGS
-  // =========================
+  // Safely parse tags
   let parsedTags: string[] = [];
-
   try {
     parsedTags = Array.isArray(event?.tags)
       ? event.tags
@@ -304,95 +274,146 @@ export default function EventPage() {
     parsedTags = [];
   }
 
-  // =========================
-  // IMAGE SAFE DISPLAY
-  // =========================
   function getImage(url: string) {
-    if (!url || !url.startsWith("http")) {
-      return "/images/temp-event-image.png";
-    }
+    if (!url || !url.startsWith("http")) return "/images/temp-event-image.png";
     return url;
   }
 
-  // =========================
-  // LOADING
-  // =========================
-  if (loading) return <p>Loading...</p>;
-  if (!event) return <p>Event not found</p>;
+  // Format date nicely
+  function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString("en-PH", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
+  // Loading screen
+  if (loading) {
+    return (
+      <main>
+        <Header />
+        <div className="event-loading">
+          <p>Loading event...</p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  // Event not found
+  if (!event) {
+    return (
+      <main>
+        <Header />
+        <div className="event-loading">
+          <p>Event not found.</p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   return (
     <main>
       <Header />
 
+      {/* Hero banner with image and title overlay */}
+      <div className="event-hero">
+        <img
+          src={getImage(imageUrl)}
+          alt={event.title}
+          className="event-hero-image"
+        />
+        <div className="event-hero-overlay" />
+        <div className="event-hero-text">
+          <h1 className="event-hero-title">{event.title}</h1>
+          {event.event_date && (
+            <p className="event-hero-date">{formatDate(event.event_date)}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Main content */}
       <section className="event-page-section">
-        <div className="event-page-container">
-          <img
-            src={getImage(imageUrl)}
-            className="event-page-image"
-            alt={event.title}
-          />
+        <div className="event-page-container reveal">
+          {/* Left: description + tags */}
+          <div className="event-body">
+            <p className="event-description">{event.description}</p>
 
-          <div className="event-content">
-            <h1 className="event-title">{event.title}</h1>
-
-            {event.event_date && (
-              <p className="event-date">
-                {new Date(event.event_date).toLocaleDateString("en-PH", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
+            {parsedTags.length > 0 && (
+              <div className="event-tags" style={{ marginTop: "20px" }}>
+                {parsedTags.map((t, i) => (
+                  <span key={i}>#{t}</span>
+                ))}
+              </div>
             )}
+          </div>
 
-            <div className="event-hype-section">
-              <p className="event-hype-count">{hypeCount} hype</p>
-
+          {/* Right: info sidebar */}
+          <aside className="event-sidebar">
+            {/* Hype card */}
+            <div className="event-sidebar-card">
+              <p className="event-hype-count">🔥 {hypeCount} hype</p>
               <button
                 className={`event-hype-btn ${hasHyped ? "hyped" : ""}`}
                 onClick={toggleHype}
                 disabled={!user}
+                title={!user ? "Log in to hype this event" : ""}
               >
-                {hasHyped ? "Hyped" : "Add Hype"}
+                {hasHyped ? "✓ Hyped!" : "Add Hype"}
               </button>
+              {!user && (
+                <p className="event-sidebar-note">Log in to add hype</p>
+              )}
             </div>
 
-            <p className="event-description">{event.description}</p>
+            {/* Date card */}
+            {event.event_date && (
+              <div className="event-sidebar-card">
+                <p className="event-sidebar-label">Date</p>
+                <p className="event-sidebar-value">
+                  {formatDate(event.event_date)}
+                </p>
+              </div>
+            )}
 
-            <div className="event-tags">
-              {parsedTags.map((t, i) => (
-                <span key={i}>#{t}</span>
-              ))}
-            </div>
-
+            {/* Edit button for admin or owner */}
             {(isAdmin || isOwner) && (
               <button
-                className="edit-profile-btn"
+                className="event-edit-btn"
                 onClick={() => setEditing(true)}
               >
                 Edit Event
               </button>
             )}
-          </div>
+          </aside>
         </div>
       </section>
 
+      {/* Edit modal */}
       {editing && (
         <div className="edit-modal-overlay">
           <div className="edit-modal">
             <h2>Edit Event</h2>
 
+            <label>Title</label>
             <input
               type="text"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Event title"
             />
 
+            <label>Description</label>
             <textarea
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Event description"
             />
 
+            <label>Date</label>
             <input
               type="date"
               value={editDate}
@@ -400,15 +421,22 @@ export default function EventPage() {
             />
 
             <label>Event Image</label>
-
             <input type="file" accept="image/*" onChange={handleImageUpload} />
-
             {imageUploading && <p>Uploading image...</p>}
+            {imageUrl && (
+              <img
+                src={imageUrl}
+                alt="Preview"
+                className="event-upload-preview"
+              />
+            )}
 
+            <label>Tags (comma separated)</label>
             <input
               type="text"
               value={editTags}
               onChange={(e) => setEditTags(e.target.value)}
+              placeholder="e.g. sports, academic, arts"
             />
 
             <div className="edit-modal-buttons">
