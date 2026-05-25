@@ -164,7 +164,7 @@ export default function OrgsPage() {
       {/* Search bar */}
       <div className="orgs-search-bar">
         <div className="orgs-search-inner">
-          <span className="orgs-search-icon">🔍</span>
+          <span className="orgs-search-icon">🔍︎</span>
           <input
             className="orgs-search-input"
             type="text"
