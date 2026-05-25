@@ -9,6 +9,21 @@ import imageCompression from "browser-image-compression";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
+// Safely converts any tags value to a comma-separated string for editing
+function parseTags(tags: any): string {
+  if (!tags) return "";
+  if (Array.isArray(tags)) return tags.join(", ");
+  if (typeof tags === "string") {
+    try {
+      const parsed = JSON.parse(tags);
+      return Array.isArray(parsed) ? parsed.join(", ") : tags;
+    } catch {
+      return tags;
+    }
+  }
+  return "";
+}
+
 export default function EventPage() {
   // Get slug from the URL
   const params = useParams();
@@ -109,10 +124,13 @@ export default function EventPage() {
       }
 
       setEvent(data);
+
+      // Use parseTags so arrays, JSON strings, and plain comma strings
+      // all initialise the edit field correctly
       setEditTitle(data.title || "");
       setEditDescription(data.description || "");
       setEditDate(data.event_date || "");
-      setEditTags(Array.isArray(data.tags) ? data.tags.join(", ") : "");
+      setEditTags(parseTags(data.tags));
       setImageUrl(data.image_url || "");
 
       const { count } = await supabase
@@ -138,6 +156,18 @@ export default function EventPage() {
     fetchEvent();
   }, [slug]);
 
+  // Re-populate edit fields whenever the modal opens so they always
+  // reflect the latest saved event state, not stale initial load values
+  useEffect(() => {
+    if (editing && event) {
+      setEditTitle(event.title || "");
+      setEditDescription(event.description || "");
+      setEditDate(event.event_date || "");
+      setEditTags(parseTags(event.tags));
+      setImageUrl(event.image_url || "");
+    }
+  }, [editing]);
+
   // Scroll reveal observer
   useEffect(() => {
     if (loading) return;
@@ -156,13 +186,13 @@ export default function EventPage() {
   }, [loading]);
 
   // Image compression & upload
-  const MAX_FILE_SIZE_MB = 2;
+  const MAX_FILE_SIZE_MB = 20;
 
   async function compressIfNeeded(file: File) {
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
       return await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1280,
+        maxSizeMB: 5,
+        maxWidthOrHeight: 1920,
         useWebWorker: true,
       });
     }
@@ -191,8 +221,8 @@ export default function EventPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image too large (max 5MB before compression)");
+    if (file.size > 20 * 1024 * 1024) {
+      alert("Image too large (max 20MB before compression)");
       return;
     }
 
@@ -206,6 +236,12 @@ export default function EventPage() {
   async function saveEvent() {
     if (!event) return;
 
+    // Parse tags from current editTags state only — never from event.tags
+    const parsedTagsArray = editTags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag !== "");
+
     const { error } = await supabase
       .from("events")
       .update({
@@ -213,10 +249,7 @@ export default function EventPage() {
         description: editDescription,
         event_date: editDate,
         image_url: imageUrl,
-        tags: editTags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag !== ""),
+        tags: parsedTagsArray,
       })
       .eq("id", event.id);
 
@@ -225,16 +258,14 @@ export default function EventPage() {
       return;
     }
 
+    // Update local event state with saved values
     setEvent({
       ...event,
       title: editTitle,
       description: editDescription,
       event_date: editDate,
       image_url: imageUrl,
-      tags: editTags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== ""),
+      tags: parsedTagsArray,
     });
 
     setEditing(false);
@@ -264,14 +295,14 @@ export default function EventPage() {
     }
   }
 
-  // Safely parse tags
-  let parsedTags: string[] = [];
+  // Safely parse tags for display
+  let displayTags: string[] = [];
   try {
-    parsedTags = Array.isArray(event?.tags)
+    displayTags = Array.isArray(event?.tags)
       ? event.tags
       : JSON.parse(event?.tags || "[]");
   } catch {
-    parsedTags = [];
+    displayTags = [];
   }
 
   function getImage(url: string) {
@@ -342,9 +373,9 @@ export default function EventPage() {
           <div className="event-body">
             <p className="event-description">{event.description}</p>
 
-            {parsedTags.length > 0 && (
+            {displayTags.length > 0 && (
               <div className="event-tags" style={{ marginTop: "20px" }}>
-                {parsedTags.map((t, i) => (
+                {displayTags.map((t, i) => (
                   <span key={i}>#{t}</span>
                 ))}
               </div>
@@ -396,52 +427,84 @@ export default function EventPage() {
       {editing && (
         <div className="edit-modal-overlay">
           <div className="edit-modal">
-            <h2>Edit Event</h2>
+            <div className="edit-modal-header">
+              <h2>Edit Event</h2>
+              <button
+                className="edit-modal-close"
+                onClick={() => setEditing(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
 
-            <label>Title</label>
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="Event title"
-            />
-
-            <label>Description</label>
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              placeholder="Event description"
-            />
-
-            <label>Date</label>
-            <input
-              type="date"
-              value={editDate}
-              onChange={(e) => setEditDate(e.target.value)}
-            />
-
-            <label>Event Image</label>
-            <input type="file" accept="image/*" onChange={handleImageUpload} />
-            {imageUploading && <p>Uploading image...</p>}
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt="Preview"
-                className="event-upload-preview"
+            <div className="edit-modal-field">
+              <label>Title</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Event title"
               />
-            )}
+            </div>
 
-            <label>Tags (comma separated)</label>
-            <input
-              type="text"
-              value={editTags}
-              onChange={(e) => setEditTags(e.target.value)}
-              placeholder="e.g. sports, academic, arts"
-            />
+            <div className="edit-modal-field">
+              <label>Description</label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Event description"
+              />
+            </div>
+
+            <div className="edit-modal-field">
+              <label>Date</label>
+              <input
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+              />
+            </div>
+
+            <div className="edit-modal-field">
+              <label>Event Image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+              {imageUploading && (
+                <p className="upload-status">Uploading image…</p>
+              )}
+              {imageUrl && (
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  className="edit-modal-preview edit-modal-preview--banner"
+                />
+              )}
+            </div>
+
+            <div className="edit-modal-field">
+              <label>Tags</label>
+              <input
+                type="text"
+                value={editTags}
+                onChange={(e) => setEditTags(e.target.value)}
+                placeholder="e.g. sports, academic, arts (comma-separated)"
+              />
+            </div>
 
             <div className="edit-modal-buttons">
-              <button onClick={saveEvent}>Save</button>
-              <button onClick={() => setEditing(false)}>Cancel</button>
+              <button className="edit-modal-save" onClick={saveEvent}>
+                Save Changes
+              </button>
+              <button
+                className="edit-modal-cancel"
+                onClick={() => setEditing(false)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

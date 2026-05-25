@@ -12,8 +12,8 @@ import { enrichEvents } from "@/components/enrichEvents";
 // =========================
 // IMAGE LIMITS (IMPORTANT)
 // =========================
-const MAX_IMAGE_SIZE_MB = 2; // reject anything above 2MB BEFORE compression
-const MAX_DIMENSION = 1280; // compress down to max 1280px
+const MAX_IMAGE_SIZE_MB = 20; // reject anything above 2MB BEFORE compression
+const MAX_DIMENSION = 1920; // compress down to max 1280px
 
 export default function ProfilePage() {
   // =========================

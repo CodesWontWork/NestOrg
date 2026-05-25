@@ -1794,6 +1794,7 @@ header {
 }
 
 .event-page-container {
+  padding: 40px 20px;
   width: 100%;
   max-width: 900px;
   background: var(--bg-color1);

@@ -72,8 +72,8 @@ export default function CreateOrganizationPage() {
         const canvas = document.createElement("canvas");
 
         // Maximum image size
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1920;
 
         let width = image.width;
         let height = image.height;
@@ -139,9 +139,9 @@ export default function CreateOrganizationPage() {
     }
 
     // Limit original file size
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 20 * 1024 * 1024) {
       setMessageType("error");
-      setMessage("Image must be below 10MB.");
+      setMessage("Image must be below 20MB.");
 
       return null;
     }
@@ -150,7 +150,7 @@ export default function CreateOrganizationPage() {
     const compressedFile = await compressImage(file);
 
     // Limit compressed file size
-    if (compressedFile.size > 2 * 1024 * 1024) {
+    if (compressedFile.size > 10 * 1024 * 1024) {
       setMessageType("error");
       setMessage(
         "Compressed image is still too large. Please use a smaller image.",

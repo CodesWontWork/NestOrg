@@ -12,6 +12,21 @@ import Footer from "@/components/Footer";
 import EventsGrid from "@/components/EventsGrid";
 import { enrichEvents } from "@/components/enrichEvents";
 
+// Safely converts any tags value to a comma-separated string for editing
+function parseTags(tags: any): string {
+  if (!tags) return "";
+  if (Array.isArray(tags)) return tags.join(", ");
+  if (typeof tags === "string") {
+    try {
+      const parsed = JSON.parse(tags);
+      return Array.isArray(parsed) ? parsed.join(", ") : tags;
+    } catch {
+      return tags;
+    }
+  }
+  return "";
+}
+
 export default function OrganizationPage() {
   // Get URL params
   const params = useParams();
@@ -115,15 +130,12 @@ export default function OrganizationPage() {
       // Store organization data
       setOrg(orgData);
 
-      // Set default edit values
+      // Set default edit values — use parseTags so JSON strings, arrays,
+      // and plain comma strings all initialise correctly
       setEditName(orgData.name || "");
-
       setEditDescription(orgData.description || "");
-
-      setEditTags(Array.isArray(orgData.tags) ? orgData.tags.join(", ") : "");
-
+      setEditTags(parseTags(orgData.tags));
       setLogoUrl(orgData.logo_url || "");
-
       setBannerUrl(orgData.banner_url || "");
 
       // Create events query
@@ -160,11 +172,23 @@ export default function OrganizationPage() {
     }
   }, [slug]);
 
+  // Re-populate edit fields whenever the modal opens so they always
+  // reflect the latest saved org state, not stale initial load values
+  useEffect(() => {
+    if (editing && org) {
+      setEditName(org.name || "");
+      setEditDescription(org.description || "");
+      setEditTags(parseTags(org.tags));
+      setLogoUrl(org.logo_url || "");
+      setBannerUrl(org.banner_url || "");
+    }
+  }, [editing]);
+
   // Compress uploaded images
   async function compressImage(file: File) {
     const options = {
-      maxSizeMB: 0.7,
-      maxWidthOrHeight: 1280,
+      maxSizeMB: 5,
+      maxWidthOrHeight: 1920,
       useWebWorker: true,
     };
 
@@ -184,8 +208,8 @@ export default function OrganizationPage() {
     }
 
     // Reject oversized images
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image must be under 5MB.");
+    if (file.size > 20 * 1024 * 1024) {
+      alert("Image must be under 20MB.");
 
       return null;
     }
@@ -194,7 +218,7 @@ export default function OrganizationPage() {
     const compressedFile = await compressImage(file);
 
     // Final compressed size limit
-    if (compressedFile.size > 2 * 1024 * 1024) {
+    if (compressedFile.size > 10 * 1024 * 1024) {
       alert("Compressed image is still too large. Please use a smaller image.");
 
       return null;
@@ -282,22 +306,21 @@ export default function OrganizationPage() {
   async function saveOrg() {
     if (!org) return;
 
+    // Parse tags from the current editTags state only — never from org.tags
+    const parsedTagsArray = editTags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag !== "");
+
     // Update organization in database
     const { error } = await supabase
       .from("organizations")
       .update({
         name: editName,
-
         description: editDescription,
-
         logo_url: logoUrl,
-
         banner_url: bannerUrl,
-
-        tags: editTags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag !== ""),
+        tags: parsedTagsArray,
       })
       .eq("id", org.id);
 
@@ -310,22 +333,14 @@ export default function OrganizationPage() {
       return;
     }
 
-    // Update local organization state
+    // Update local organization state with saved values
     setOrg({
       ...org,
-
       name: editName,
-
       description: editDescription,
-
       logo_url: logoUrl,
-
       banner_url: bannerUrl,
-
-      tags: editTags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== ""),
+      tags: parsedTagsArray,
     });
 
     // Close edit modal
@@ -499,7 +514,7 @@ export default function OrganizationPage() {
                   accept=".jpg,.jpeg,.png,.webp"
                   onChange={handleLogoUpload}
                 />
-                <p className="upload-note">Max 5MB · JPG, PNG, WEBP</p>
+                <p className="upload-note">Max 20MB · JPG, PNG, WEBP</p>
                 {logoUploading && (
                   <p className="upload-status">Uploading logo…</p>
                 )}
@@ -519,7 +534,7 @@ export default function OrganizationPage() {
                   accept=".jpg,.jpeg,.png,.webp"
                   onChange={handleBannerUpload}
                 />
-                <p className="upload-note">Max 5MB · JPG, PNG, WEBP</p>
+                <p className="upload-note">Max 20MB · JPG, PNG, WEBP</p>
                 {bannerUploading && (
                   <p className="upload-status">Uploading banner…</p>
                 )}

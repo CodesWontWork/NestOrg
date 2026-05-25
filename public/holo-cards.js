@@ -1,6 +1,3 @@
-// Holographic card effect — drop this script anywhere in your app layout
-// It handles both .home-event-card and .org-card automatically
-
 (function () {
   const CARD_SEL = ".home-event-card, .org-card";
   const MAX_TILT = 12; // degrees

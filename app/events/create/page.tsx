@@ -117,7 +117,7 @@ export default function EventCreatePage() {
         const canvas = document.createElement("canvas");
 
         // Maximum image width
-        const MAX_WIDTH = 1280;
+        const MAX_WIDTH = 1920;
 
         // Calculate resize ratio
         const scaleSize = MAX_WIDTH / image.width;
@@ -154,7 +154,7 @@ export default function EventCreatePage() {
             resolve(compressedFile);
           },
           "image/jpeg",
-          0.7,
+          5,
         );
       };
     });
@@ -223,8 +223,8 @@ export default function EventCreatePage() {
       }
 
       // Validate file size
-      if (imageFile.size > 5 * 1024 * 1024) {
-        setMessage("Image must be under 5MB.");
+      if (imageFile.size > 20 * 1024 * 1024) {
+        setMessage("Image must be under 20MB.");
 
         setLoading(false);
 
