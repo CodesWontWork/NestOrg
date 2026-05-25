@@ -175,13 +175,19 @@ export default function AdminPage() {
 
         {loading ? (
           // Loading message while fetching data
-          <p>Loading...</p>
+          <p className="admin-loading">Loading dashboard...</p>
         ) : (
           <>
             {/* Pending approval section */}
             <h2 className="admin-section-title">Pending Approval</h2>
 
             <div className="admin-list">
+              {pending.length === 0 && (
+                <div className="admin-empty">
+                  No items waiting for approval.
+                </div>
+              )}
+
               {pending.map((item) => (
                 <div key={`${item.type}-${item.id}`} className="admin-card">
                   {/* Item info */}
@@ -225,6 +231,10 @@ export default function AdminPage() {
             <h2 className="admin-section-title">Approved</h2>
 
             <div className="admin-list">
+              {approved.length === 0 && (
+                <div className="admin-empty">No approved items yet.</div>
+              )}
+
               {approved.map((item) => (
                 <div key={`${item.type}-${item.id}`} className="admin-card">
                   {/* Item info */}
