@@ -39,7 +39,6 @@ export default function AuthPage() {
 
     setSession(null);
 
-    // Show success popup
     setPopup({
       show: true,
       type: "success",
@@ -48,7 +47,7 @@ export default function AuthPage() {
   }
 
   // Current auth mode
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
 
   // Signup form states
   const [username, setUsername] = useState("");
@@ -58,6 +57,9 @@ export default function AuthPage() {
   // Login form states
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+
+  // Forgot password email state
+  const [forgotEmail, setForgotEmail] = useState("");
 
   // Loading state
   const [loading, setLoading] = useState(false);
@@ -81,29 +83,15 @@ export default function AuthPage() {
       .select("username")
       .eq("username", username);
 
-    // Show error if username check fails
     if (usernameError) {
-      setPopup({
-        show: true,
-        type: "error",
-        text: "Error checking username.",
-      });
-
+      setPopup({ show: true, type: "error", text: "Error checking username." });
       setLoading(false);
-
       return;
     }
 
-    // Stop if username already exists
     if (existingUsers && existingUsers.length > 0) {
-      setPopup({
-        show: true,
-        type: "error",
-        text: "Username already exists.",
-      });
-
+      setPopup({ show: true, type: "error", text: "Username already exists." });
       setLoading(false);
-
       return;
     }
 
@@ -111,7 +99,6 @@ export default function AuthPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-
       options: {
         data: {
           display_name: username,
@@ -120,16 +107,9 @@ export default function AuthPage() {
       },
     });
 
-    // Show signup error
     if (error) {
-      setPopup({
-        show: true,
-        type: "error",
-        text: error.message,
-      });
-
+      setPopup({ show: true, type: "error", text: error.message });
       setLoading(false);
-
       return;
     }
 
@@ -142,7 +122,6 @@ export default function AuthPage() {
       });
     }
 
-    // Show success popup
     setPopup({
       show: true,
       type: "success",
@@ -163,31 +142,47 @@ export default function AuthPage() {
 
     setLoading(true);
 
-    // Login using email and password
     const { error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password: loginPassword,
     });
 
-    // Show login error
     if (error) {
-      setPopup({
-        show: true,
-        type: "error",
-        text: error.message,
-      });
+      setPopup({ show: true, type: "error", text: error.message });
     } else {
-      // Show success popup
-      setPopup({
-        show: true,
-        type: "success",
-        text: "Login successful!",
-      });
+      setPopup({ show: true, type: "success", text: "Login successful!" });
 
-      // Redirect to homepage
       setTimeout(() => {
         window.location.href = "/";
       }, 1500);
+    }
+
+    setLoading(false);
+  }
+
+  // Handle forgot password — sends reset email via Supabase
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/auth/reset`,
+    });
+
+    if (error) {
+      setPopup({ show: true, type: "error", text: error.message });
+    } else {
+      setPopup({
+        show: true,
+        type: "success",
+        text: "Password reset email sent! Check your inbox.",
+      });
+
+      setForgotEmail("");
+
+      // Go back to login after a moment
+      setTimeout(() => setMode("login"), 2000);
     }
 
     setLoading(false);
@@ -200,19 +195,15 @@ export default function AuthPage() {
   useEffect(() => {
     function handleMouseMove(e: MouseEvent) {
       const x = (e.clientX / window.innerWidth - 0.5) * 20;
-
       const y = (e.clientY / window.innerHeight - 0.5) * 20;
 
-      // Move image slightly with mouse
       if (imageRef.current) {
         imageRef.current.style.transform = `translate(${x}px, ${y}px) scale(1.05)`;
       }
     }
 
-    // Add mouse move listener
     window.addEventListener("mousemove", handleMouseMove);
 
-    // Remove listener on cleanup
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
@@ -221,8 +212,14 @@ export default function AuthPage() {
   // Terms popup state
   const [showTerms, setShowTerms] = useState(false);
 
+  // Privacy popup state
+  const [showPrivacy, setShowPrivacy] = useState(false);
+
   // Terms checkbox state
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  // Privacy checkbox state
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   // User profile data
   const [profile, setProfile] = useState<any>(null);
@@ -278,6 +275,11 @@ export default function AuthPage() {
                 required
               />
 
+              {/* Forgot password link */}
+              <p className="auth-forgot" onClick={() => setMode("forgot")}>
+                Forgot your password?
+              </p>
+
               {/* Submit button */}
               <button className="submit" disabled={loading}>
                 {loading ? "Loading..." : "Log In"}
@@ -286,9 +288,42 @@ export default function AuthPage() {
               {/* Switch to signup */}
               <div>
                 <p>Need an account?</p>
-
                 <p onClick={() => setMode("signup")} className="switch">
                   Sign Up
+                </p>
+              </div>
+            </form>
+          )}
+
+          {/* FORGOT PASSWORD FORM */}
+          {mode === "forgot" && (
+            <form onSubmit={handleForgotPassword} className="auth-form">
+              <h1>Reset Password</h1>
+
+              <p className="auth-form-subtitle">
+                Enter your email and we'll send you a link to reset your
+                password.
+              </p>
+
+              {/* Email input */}
+              <input
+                type="email"
+                placeholder="Email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                required
+              />
+
+              {/* Submit button */}
+              <button className="submit" disabled={loading}>
+                {loading ? "Sending..." : "Send Reset Link"}
+              </button>
+
+              {/* Back to login */}
+              <div>
+                <p>Remembered it?</p>
+                <p onClick={() => setMode("login")} className="switch">
+                  Log In
                 </p>
               </div>
             </form>
@@ -326,7 +361,7 @@ export default function AuthPage() {
                 required
               />
 
-              {/* Terms checkbox */}
+              {/* Terms & Conditions checkbox */}
               <label className="terms-checkbox">
                 <input
                   type="checkbox"
@@ -334,9 +369,8 @@ export default function AuthPage() {
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
                   required
                 />
-
                 <span>
-                  I agree to the {/* Open terms popup */}
+                  I agree to the{" "}
                   <button
                     type="button"
                     className="terms-btn"
@@ -347,15 +381,37 @@ export default function AuthPage() {
                 </span>
               </label>
 
+              {/* Data Privacy checkbox */}
+              <label className="terms-checkbox">
+                <input
+                  type="checkbox"
+                  checked={acceptedPrivacy}
+                  onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                  required
+                />
+                <span>
+                  I have read the{" "}
+                  <button
+                    type="button"
+                    className="terms-btn"
+                    onClick={() => setShowPrivacy(true)}
+                  >
+                    Data Privacy Policy
+                  </button>
+                </span>
+              </label>
+
               {/* Signup button */}
-              <button className="submit" disabled={loading || !acceptedTerms}>
+              <button
+                className="submit"
+                disabled={loading || !acceptedTerms || !acceptedPrivacy}
+              >
                 {loading ? "Loading..." : "Sign Up"}
               </button>
 
               {/* Switch to login */}
               <div>
                 <p>Already have an account?</p>
-
                 <p onClick={() => setMode("login")} className="switch">
                   Log In
                 </p>
@@ -363,11 +419,10 @@ export default function AuthPage() {
             </form>
           )}
 
-          {/* TERMS POPUP */}
+          {/* TERMS & CONDITIONS POPUP */}
           {showTerms && (
             <div className="popup-overlay">
               <div className="popup-box">
-                {/* Close popup */}
                 <button
                   className="popup-close"
                   onClick={() => setShowTerms(false)}
@@ -382,13 +437,9 @@ export default function AuthPage() {
 
                   <ul>
                     <li>Use the platform respectfully.</li>
-
                     <li>Not impersonate other users or organizations.</li>
-
                     <li>Not upload harmful or illegal content.</li>
-
                     <li>Keep your account credentials secure.</li>
-
                     <li>
                       Follow Cavite State University community guidelines.
                     </li>
@@ -400,12 +451,85 @@ export default function AuthPage() {
                   </p>
                 </div>
 
-                {/* Accept terms button */}
                 <button
                   className="popup-accept"
                   onClick={() => {
                     setAcceptedTerms(true);
                     setShowTerms(false);
+                  }}
+                >
+                  I Understand
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* DATA PRIVACY POPUP */}
+          {showPrivacy && (
+            <div className="popup-overlay">
+              <div className="popup-box">
+                <button
+                  className="popup-close"
+                  onClick={() => setShowPrivacy(false)}
+                >
+                  ✕
+                </button>
+
+                <h2>Data Privacy Policy</h2>
+
+                <div className="popup-content">
+                  <p>
+                    In compliance with the{" "}
+                    <strong>
+                      Data Privacy Act of 2012 (Republic Act No. 10173)
+                    </strong>
+                    , NestOrg is committed to protecting your personal
+                    information.
+                  </p>
+
+                  <ul>
+                    <li>
+                      <strong>What we collect:</strong> Your username, email
+                      address, and profile information you choose to provide.
+                    </li>
+                    <li>
+                      <strong>How we use it:</strong> To manage your account,
+                      display your profile, and connect you with organizations
+                      and events at Cavite State University.
+                    </li>
+                    <li>
+                      <strong>Who can see it:</strong> Your username and public
+                      profile are visible to other users. Your email is never
+                      shared publicly.
+                    </li>
+                    <li>
+                      <strong>Your rights:</strong> You may request access to,
+                      correction of, or deletion of your personal data at any
+                      time by contacting a platform administrator.
+                    </li>
+                    <li>
+                      <strong>Data security:</strong> We use Supabase's
+                      industry-standard security measures to store and protect
+                      your data.
+                    </li>
+                    <li>
+                      <strong>Retention:</strong> Your data is retained for as
+                      long as your account is active. Deleting your account will
+                      remove your personal information from our records.
+                    </li>
+                  </ul>
+
+                  <p>
+                    By continuing, you consent to the collection and use of your
+                    information as described above.
+                  </p>
+                </div>
+
+                <button
+                  className="popup-accept"
+                  onClick={() => {
+                    setAcceptedPrivacy(true);
+                    setShowPrivacy(false);
                   }}
                 >
                   I Understand
@@ -420,20 +544,12 @@ export default function AuthPage() {
       {popup.show && (
         <div className="auth-message">
           <div className="auth-message-box">
-            {/* Close popup button */}
             <button
               className="close-popup"
-              onClick={() =>
-                setPopup({
-                  ...popup,
-                  show: false,
-                })
-              }
+              onClick={() => setPopup({ ...popup, show: false })}
             >
               ✕
             </button>
-
-            {/* Popup text */}
             <p>{popup.text}</p>
           </div>
         </div>

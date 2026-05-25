@@ -807,6 +807,28 @@ header {
   text-decoration: underline;
 }
 
+.auth-forgot {
+  font-size: 0.85rem;
+  color: var(--green2);
+  cursor: pointer;
+  text-align: right;
+  margin: -10px 0 4px;
+  transition: opacity 0.2s ease;
+}
+
+.auth-forgot:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+.auth-form-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-black-light);
+  text-align: center;
+  margin: -10px 0 6px;
+  line-height: 1.5;
+}
+
 .popup-overlay {
   position: fixed;
   inset: 0;
@@ -889,10 +911,12 @@ header {
   background: var(--bg-color1);
   border-bottom: 1px solid var(--bg-color3);
   padding: 32px 0 28px;
+  margin: 20px 15% 0 15%;
+  border-radius: 12px;
 }
 
 .orgs-page-header-inner {
-  margin: 0 15%;
+  margin: 0 2%;
   display: flex;
   align-items: center;
   justify-content: space-between;
