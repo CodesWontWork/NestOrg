@@ -23,68 +23,95 @@ export default function Home() {
   // Stores total user count
   const [userCount, setUserCount] = useState(0);
 
-  // Stores homepage events
-  const [events, setEvents] = useState<any[]>([]);
+  // Stores current/upcoming homepage events
+  const [currentEvents, setCurrentEvents] = useState<any[]>([]);
+
+  // Stores past homepage events
+  const [pastEvents, setPastEvents] = useState<any[]>([]);
+
+  // Today's date in ISO format for date comparisons
+  const today = new Date().toISOString().split("T")[0];
 
   // Loads homepage data on first render
   useEffect(() => {
     async function loadHomeData() {
       setLoading(true);
 
-      // Fetch latest approved events
-      const { data, error } = await supabase
+      // Fetch 3 latest approved current/upcoming events
+      const { data: currentData, error: currentError } = await supabase
         .from("events")
         .select("*")
         .eq("approved", true)
-        .order("created_at", { ascending: false })
+        .gte("event_date", today)
+        .order("event_date", { ascending: true })
         .limit(3);
 
-      if (error) {
-        setError(error.message);
+      if (currentError) {
+        setError(currentError.message);
         setLoading(false);
         return;
       }
 
-      // Add extra event info
-      const eventsWithData = await Promise.all(
-        (data || []).map(async (event) => {
-          // Get hype count of event
-          const { count } = await supabase
-            .from("event_hype")
-            .select("*", {
-              count: "exact",
-              head: true,
-            })
-            .eq("event_id", event.id);
+      // Fetch 3 latest approved past events
+      const { data: pastData, error: pastError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("approved", true)
+        .lt("event_date", today)
+        .order("event_date", { ascending: false })
+        .limit(3);
 
-          // Default creator info
-          let creator_username = null;
-          let creator_avatar = null;
+      if (pastError) {
+        setError(pastError.message);
+        setLoading(false);
+        return;
+      }
 
-          // Fetch creator profile if event has creator
-          if (event.created_by) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("username, avatar_url")
-              .eq("id", event.created_by)
-              .single();
+      // Enrich a list of events with hype count and creator info
+      async function enrichEvents(events: any[]) {
+        return Promise.all(
+          (events || []).map(async (event) => {
+            // Get hype count of event
+            const { count } = await supabase
+              .from("event_hype")
+              .select("*", { count: "exact", head: true })
+              .eq("event_id", event.id);
 
-            creator_username = profile?.username || null;
-            creator_avatar = profile?.avatar_url || null;
-          }
+            // Default creator info
+            let creator_username = null;
+            let creator_avatar = null;
 
-          // Return enriched event object
-          return {
-            ...event,
-            hype_count: count || 0,
-            creator_username,
-            creator_avatar,
-          };
-        }),
-      );
+            // Fetch creator profile if event has creator
+            if (event.created_by) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("username, avatar_url")
+                .eq("id", event.created_by)
+                .single();
 
-      // Save events into state
-      setEvents(eventsWithData);
+              creator_username = profile?.username || null;
+              creator_avatar = profile?.avatar_url || null;
+            }
+
+            // Return enriched event object
+            return {
+              ...event,
+              hype_count: count || 0,
+              creator_username,
+              creator_avatar,
+            };
+          }),
+        );
+      }
+
+      // Enrich both event lists
+      const [enrichedCurrent, enrichedPast] = await Promise.all([
+        enrichEvents(currentData),
+        enrichEvents(pastData),
+      ]);
+
+      setCurrentEvents(enrichedCurrent);
+      setPastEvents(enrichedPast);
 
       // Load site statistics
       const [eventsRes, orgsRes, usersRes] = await Promise.all([
@@ -231,24 +258,48 @@ export default function Home() {
 
       {/* Homepage events section */}
       <section id="home-events-section">
-        <div id="uec-heading" className="reveal">
-          <div>
-            <h3>Events</h3>
-
-            <p>Check out current events!</p>
-          </div>
-
-          <Link href="/events">View All Events</Link>
-        </div>
-
         {/* Loading message */}
         {loading && <p>Loading events...</p>}
 
         {/* Error message */}
         {!loading && error && <p>{error}</p>}
 
-        {/* Events grid */}
-        {!loading && !error && <EventsGrid events={events} />}
+        {!loading && !error && (
+          <>
+            {/* Current / upcoming events */}
+            <div id="uec-heading" className="reveal">
+              <div>
+                <h3>Upcoming Events</h3>
+                <p>Check out current events!</p>
+              </div>
+              <Link href="/events">View All Events</Link>
+            </div>
+
+            {currentEvents.length > 0 ? (
+              <EventsGrid events={currentEvents} />
+            ) : (
+              <p
+                style={{ padding: "20px 0", color: "var(--text-black-light)" }}
+              >
+                No upcoming events right now.
+              </p>
+            )}
+
+            {/* Past events */}
+            {pastEvents.length > 0 && (
+              <>
+                <div id="uec-heading" className="reveal">
+                  <div>
+                    <h3>Past Events</h3>
+                    <p>Events that have already happened.</p>
+                  </div>
+                </div>
+
+                <EventsGrid events={pastEvents} />
+              </>
+            )}
+          </>
+        )}
       </section>
 
       {/* Footer */}

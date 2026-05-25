@@ -56,18 +56,6 @@ main {
   flex-direction: column;
 }
 
-/* footer always stays at the bottom —
-   the footer itself is pushed down by flex, no page changes needed */
-footer {
-  margin-top: auto;
-}
-
-/* optional: add this class to a wrapper div between header and footer
-   on any page for finer control */
-.page-content {
-  flex: 1;
-}
-
 .icon {
   filter: invert(100%);
 }
@@ -228,6 +216,7 @@ header {
 .footer {
   font-weight: bold;
   background-color: var(--bg-color1);
+  margin-top: auto;
 }
 
 .footer-top {
@@ -742,24 +731,51 @@ header {
 }
 
 .auth-message-box {
+  position: relative;
   background: var(--bg-color1);
-  padding: 30px 50px;
+  padding: 28px 28px 28px 28px;
   border-radius: 20px;
   color: var(--text-black);
   font-weight: bold;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+  max-width: 90vw;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
-.close-popup {
+/* X button inside auth-message-box and auth-message-close (create org) */
+.close-popup,
+.auth-message-close {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  background: transparent;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-color3);
   border: none;
-  color: white;
-  font-size: 3rem;
+  border-radius: 50%;
+  color: var(--text-black);
+  font-size: 0.85rem;
   cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.close-popup:hover,
+.auth-message-close:hover {
+  background: #ff4d4d;
+  color: white;
+  transform: scale(1.1);
 }
 
 .terms-checkbox {
@@ -806,22 +822,43 @@ header {
   width: 90%;
   max-width: 500px;
   background: var(--bg-color1);
-  padding: 30px;
+  padding: 24px 24px 28px 24px;
   border-radius: 20px;
   position: relative;
   color: var(--text-black);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
+/* title row so the X never overlaps the heading */
+.popup-box h2 {
+  padding-right: 36px;
+}
+
 .popup-close {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-color3);
   border: none;
-  background: none;
-  font-size: 1.2rem;
-  cursor: pointer;
+  border-radius: 50%;
   color: var(--text-black);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+  line-height: 1;
+}
+
+.popup-close:hover {
+  background: #ff4d4d;
+  color: white;
+  transform: scale(1.1);
 }
 
 .popup-content {
