@@ -52,6 +52,20 @@ main {
   background: var(--bg-color2);
   color: var(--text-black);
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* footer always stays at the bottom —
+   the footer itself is pushed down by flex, no page changes needed */
+footer {
+  margin-top: auto;
+}
+
+/* optional: add this class to a wrapper div between header and footer
+   on any page for finer control */
+.page-content {
+  flex: 1;
 }
 
 .icon {
